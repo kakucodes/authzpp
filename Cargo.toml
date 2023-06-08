@@ -1,0 +1,45 @@
+[workspace]
+members = ["packages/*", "contracts/*"]
+
+[workspace.package]
+version = "0.2.2"
+edition = "2021"
+authors = ["Marc <marc@yieldmos.com>"]
+repository = "https://github.com/kakucodes/authzpp"
+
+
+[workspace.dependencies]
+cosmwasm-schema = "1.1.3"
+cosmwasm-std = { version = "1.1.3", default-features = false, features = [
+    "stargate",
+    "staking",
+] }
+cosmwasm-storage = "1.1.3"
+cw-storage-plus = "1.0.1"
+cw-multi-test = "0.16.2"
+cw2 = "1.0.1"
+schemars = "0.8.10"
+serde = { version = "1.0.145", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.31" }
+semver = "1"
+cosmos-sdk-proto = { version = "0.19", default-features = false, features = [
+    "cosmwasm",
+] }
+osmosis-test-tube = { version = "15.1.0" }
+osmosis-std = { version = "0.15.3" }
+authzpp-utils = { path = "./packages/utils" }
+authzpp-tt-wrappers = { path = "./packages/test-tube-wrappers" }
+
+
+[profile.release.package.staking_rewards_split]
+codegen-units = 1
+incremental = false
+
+
+[profile.release]
+rpath = false
+lto = true
+overflow-checks = true
+opt-level = 3
+debug = false
+debug-assertions = false
