@@ -1,5 +1,5 @@
 [package]
-name = "authzpp-utils"
+name = "authzpp-tt-wrappers"
 version = { workspace = true }
 authors = ["Marc <marc@yieldmos.com>"]
 description = "Utility functions used by Authzpp contracts"
@@ -14,3 +14,4 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 cosmos-sdk-proto = { workspace = true }
 osmosis-std = { workspace = true }
+osmosis-test-tube = { workspace = true }

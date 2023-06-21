@@ -23,6 +23,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "allowed-denoms-send"
+version = "0.2.2"
+dependencies = [
+ "authzpp-tt-wrappers",
+ "authzpp-utils",
+ "cosmos-sdk-proto 0.19.0",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-multi-test",
+ "cw-storage-plus",
+ "cw2",
+ "osmosis-std",
+ "osmosis-test-tube",
+ "schemars",
+ "semver",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "allowlist-send"
+version = "0.2.2"
+dependencies = [
+ "authzpp-tt-wrappers",
+ "authzpp-utils",
+ "cosmos-sdk-proto 0.19.0",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-multi-test",
+ "cw-storage-plus",
+ "cw2",
+ "osmosis-std",
+ "osmosis-test-tube",
+ "schemars",
+ "semver",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -80,7 +122,6 @@ dependencies = [
  "cosmwasm-std",
  "cw-storage-plus",
  "osmosis-std",
- "osmosis-test-tube",
  "schemars",
  "serde",
  "thiserror",
@@ -269,6 +310,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
 dependencies = [
  "os_str_bytes",
+]
+
+[[package]]
+name = "combine-grant"
+version = "0.2.2"
+dependencies = [
+ "authzpp-tt-wrappers",
+ "authzpp-utils",
+ "cosmos-sdk-proto 0.19.0",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-multi-test",
+ "cw-storage-plus",
+ "cw2",
+ "osmosis-std",
+ "osmosis-test-tube",
+ "schemars",
+ "semver",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -2521,7 +2583,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a515f5799fe4961cb532f983ce2b23082366b898e52ffbce459c86f67c8378a"
 
 [[package]]
-name = "withdraw-rewards-grant"
+name = "withdraw-rewards-tax-grant"
 version = "0.2.2"
 dependencies = [
  "authzpp-tt-wrappers",
