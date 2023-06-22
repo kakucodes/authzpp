@@ -1,4 +1,4 @@
-use cosmos_sdk_proto::prost::EncodeError;
+use cosmos_sdk_proto::prost::{DecodeError, EncodeError};
 use cosmwasm_std::StdError;
 use thiserror::Error;
 
@@ -12,6 +12,12 @@ pub enum ContractError {
 
     #[error("Semver parsing error: {0}")]
     SemVer(String),
+
+    #[error("Decode Error: {0}. This is likely from a failing stargate query.")]
+    Decode(#[from] DecodeError),
+
+    #[error("No pending rewards for {0}")]
+    NoPendingRewards(String),
 
     #[error("Target Not Implemented")]
     NotImplemented {},

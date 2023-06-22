@@ -1,7 +1,9 @@
 use cosmwasm_std::{Addr, BankMsg, CosmosMsg, Decimal};
 
 use crate::{
-    helpers::{set_withdraw_rewards_address_msg, split_rewards, withdraw_rewards_msgs},
+    helpers::{
+        filter_empty_coins, set_withdraw_rewards_address_msg, split_rewards, withdraw_rewards_msgs,
+    },
     msg::{AllowedWithdrawlSettings, SimulateExecuteResponse},
     queries::{AllPendingRewards, PendingReward},
     ContractError,
@@ -83,24 +85,26 @@ pub fn generate_reward_withdrawl_msgs(
     let withdraw_rewards_exec_msg =
         create_withdraw_rewards_exec_msg(delegator_addr, contract_addr, &rewards)?;
 
-    // send the share address their share of the rewards
-    let taxation_share_send_msg = BankMsg::Send {
-        to_address: taxation_address,
-        amount: taxation_address_rewards,
-    };
+    let mut msgs = vec![withdraw_rewards_exec_msg];
+
+    // send the share address their share of the rewards if there are any
+    if filter_empty_coins(taxation_address_rewards.clone())
+        .len()
+        .gt(&0)
+    {
+        msgs.push(cosmwasm_std::CosmosMsg::Bank(BankMsg::Send {
+            to_address: taxation_address,
+            amount: taxation_address_rewards,
+        }));
+    }
 
     // send the granter their share of the rewards
-    let granter_send_msg = BankMsg::Send {
-        to_address: delegator_addr.to_string(),
-        amount: delegator_rewards,
-    };
+    if filter_empty_coins(delegator_rewards.clone()).len().gt(&0) {
+        msgs.push(cosmwasm_std::CosmosMsg::Bank(BankMsg::Send {
+            to_address: delegator_addr.to_string(),
+            amount: delegator_rewards,
+        }));
+    }
 
-    Ok(RewardExecutionMsgs {
-        msgs: vec![
-            withdraw_rewards_exec_msg,
-            cosmwasm_std::CosmosMsg::Bank(taxation_share_send_msg),
-            cosmwasm_std::CosmosMsg::Bank(granter_send_msg),
-        ],
-        grantee,
-    })
+    Ok(RewardExecutionMsgs { msgs, grantee })
 }

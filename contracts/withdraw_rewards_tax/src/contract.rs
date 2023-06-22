@@ -82,9 +82,17 @@ pub fn execute(
                 }
                 .allowed_withdrawls;
 
+            // query the pending rewards for the delegator
+            let pending_rewards = query_pending_rewards(&deps.querier, &delegator_addr)?;
+
+            // if there are no pending rewards then throw an error
+            if pending_rewards.total.len().eq(&0) {
+                return Err(ContractError::NoPendingRewards(delegator_addr.to_string()));
+            }
+
             // generate the messages to execute the withdrawl, both the MsgExec and the MsgSends
             let RewardExecutionMsgs { msgs, grantee } = generate_reward_withdrawl_msgs(
-                query_pending_rewards(&deps.querier, &delegator_addr)?,
+                pending_rewards,
                 grant_settings,
                 &info.sender,
                 &env.contract.address,

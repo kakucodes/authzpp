@@ -31,16 +31,16 @@ authzpp-utils = { path = "./packages/utils" }
 authzpp-tt-wrappers = { path = "./packages/test_tube_wrappers" }
 
 
-[profile.release.package.withdraw_rewards_tax_grant]
+[profile.release.package.withdraw-rewards-tax-grant]
 codegen-units = 1
 incremental = false
 
 
-[profile.release.package.allowlist_send]
+[profile.release.package.allowlist-send]
 codegen-units = 1
 incremental = false
 
-[profile.release.package.allowed_denoms_send]
+[profile.release.package.allowed-denoms-send]
 codegen-units = 1
 incremental = false
 

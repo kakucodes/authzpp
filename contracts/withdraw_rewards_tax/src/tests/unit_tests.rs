@@ -387,3 +387,79 @@ fn gen_reward_withdrawl_msgs() {
 
     assert_eq!(generated_msgs, expected_msgs);
 }
+
+#[test]
+pub fn generate_rewards_msgs_without_rewards() {
+    let contract_addr = Addr::unchecked("contract");
+    let grantee_addr = Addr::unchecked("grantee");
+    let granter_addr = Addr::unchecked("granter");
+    let take_rate_addr = Addr::unchecked("take_rate");
+    let validator1 = "validator1".to_string();
+
+    // test the generate_rewards_withdrawl_msgs function
+    let generated_msgs = generate_reward_withdrawl_msgs(
+        AllPendingRewards {
+            rewards: vec![PendingReward {
+                amount: vec![Coin {
+                    denom: "ujuno".to_string(),
+                    amount: 1u128.into(),
+                }],
+                validator: validator1.to_string(),
+            }],
+            total: vec![Coin {
+                denom: "ujuno".to_string(),
+                amount: 1u128.into(),
+            }],
+        },
+        AllowedWithdrawlSettings {
+            grantee: grantee_addr.to_string(),
+            taxation_address: take_rate_addr.to_string(),
+            max_fee_percentage: Decimal::percent(15),
+            expiration: Timestamp::from_seconds(1000),
+        },
+        &grantee_addr,
+        &contract_addr,
+        &granter_addr,
+        None,
+    )
+    .unwrap();
+
+    let expected_msgs = RewardExecutionMsgs {
+        msgs: vec![
+            exec_msg(
+                &contract_addr,
+                vec![
+                    MsgSetWithdrawAddress {
+                        delegator_address: granter_addr.to_string(),
+                        withdraw_address: contract_addr.to_string(),
+                    }
+                    .to_any()
+                    .unwrap(),
+                    MsgWithdrawDelegatorReward {
+                        validator_address: validator1,
+                        delegator_address: granter_addr.to_string(),
+                    }
+                    .to_any()
+                    .unwrap(),
+                    MsgSetWithdrawAddress {
+                        delegator_address: granter_addr.to_string(),
+                        withdraw_address: granter_addr.to_string(),
+                    }
+                    .to_any()
+                    .unwrap(),
+                ],
+            )
+            .unwrap(),
+            CosmosMsg::Bank(BankMsg::Send {
+                to_address: granter_addr.to_string(),
+                amount: vec![Coin {
+                    denom: "ujuno".to_string(),
+                    amount: 1u128.into(),
+                }],
+            }),
+        ],
+        grantee: grantee_addr.to_string(),
+    };
+
+    assert_eq!(generated_msgs, expected_msgs);
+}

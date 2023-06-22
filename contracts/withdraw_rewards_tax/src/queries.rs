@@ -1,9 +1,12 @@
+use std::io::Cursor;
+
 use crate::{
-    helpers::{sum_coins, },
+    helpers::{sum_coins, dec_coin_to_coin, filter_empty_coins, },
     msg::{ VersionResponse, GrantQueryResponse, }, state::GRANTS,
 };
 use authzpp_utils::helpers::Expirable;
-use cosmwasm_std::{Addr, FullDelegation, QuerierWrapper, Storage, BlockInfo, StdResult, Order, Coin, };
+use cosmos_sdk_proto::{cosmos::distribution::v1beta1::{ QueryDelegationTotalRewardsRequest, QueryDelegationTotalRewardsResponse, DelegationDelegatorReward, }, traits::Message};
+use cosmwasm_std::{Addr, FullDelegation, QuerierWrapper, Storage, BlockInfo, StdResult, Order, Coin, Binary, QueryRequest, };
 
 use crate::ContractError;
 
@@ -25,40 +28,82 @@ pub struct PendingReward {
     pub amount: Vec<Coin>,
 }
 
+/// Queries the pending staking rewards and the total rewards for a given delegator via stargate queries
+/// this is the cheapest/fastest way to get the data
+pub fn query_total_pending_rewards_stargate(
+    querier: &QuerierWrapper,
+    delegator_addr: &Addr,
+) -> Result<AllPendingRewards, ContractError> {
+
+    let bin = QueryDelegationTotalRewardsRequest{ delegator_address: delegator_addr.to_string() }
+    .encode_to_vec();
+
+    let data = Binary::from(bin);
+
+    let query = QueryRequest::Stargate {
+        path: "/cosmos.staking.v1beta1.Query/DelegationTotalRewards".to_string(),
+        data,
+    };
+
+    let bin: Binary = querier.query(&query)?;
+    let QueryDelegationTotalRewardsResponse { rewards, total } = QueryDelegationTotalRewardsResponse::decode(&mut Cursor::new(bin.to_vec()))
+        .map_err(ContractError::Decode)?;
+
+
+    Ok(AllPendingRewards { 
+        total: total.iter().map(dec_coin_to_coin).collect::<Result<Vec<Coin>, ContractError>>()?,
+        rewards: rewards.into_iter().map(|DelegationDelegatorReward {
+            validator_address, reward }| Ok(PendingReward { 
+                validator: validator_address, 
+                amount: reward.iter().map(dec_coin_to_coin).collect::<Result<Vec<Coin>, ContractError>>()?
+            })).collect::<Result<Vec<PendingReward>, ContractError>>()?,
+        })
+    
+}
+
 /// Queries the pending staking rewards for a given delegator
 pub fn query_pending_rewards(
     querier: &QuerierWrapper,
     delegator_addr: &Addr,
 ) -> Result<AllPendingRewards, ContractError> {
-    // gets all of the individual delegations for the delegator
-    let rewards_query: Result<Vec<PendingReward>, ContractError> = querier
-        .query_all_delegations(delegator_addr)?
-        .into_iter()
-        .map(
-            // each delegation is queried for its pending rewards
-            |delegation| match querier.query_delegation(delegator_addr, delegation.validator) {
-                Ok(Some(FullDelegation {
-                    validator,
-                    accumulated_rewards,
-                    ..
-                })) => Ok(PendingReward {
-                    validator,
-                    amount: accumulated_rewards,
-                }),
-                _ => Err(ContractError::QueryPendingRewardsFailure),
-            },
-        )
-        .collect();
 
-    let rewards = rewards_query?;
+    // first try to get the pending rewards via stargate query to save gas
+    match query_total_pending_rewards_stargate(querier, delegator_addr) {
+        Ok(rewards) => Ok(rewards),
+        Err(_) => {
+            // gets all of the individual delegations for the delegator since the stargate query failed
+            let rewards_query: Result<Vec<PendingReward>, ContractError> = querier
+                .query_all_delegations(delegator_addr)?
+                .into_iter()
+                .map(
+                    // each delegation is queried for its pending rewards
+                    |delegation| match querier.query_delegation(delegator_addr, delegation.validator) {
+                        Ok(Some(FullDelegation {
+                            validator,
+                            accumulated_rewards,
+                            ..
+                        })) => Ok(PendingReward {
+                            validator,
+                            amount: accumulated_rewards,
+                        }),
+                        _ => Err(ContractError::QueryPendingRewardsFailure),
+                    },
+                )
+                .collect();
 
-    // sums the rewards
-    let total = rewards.iter().fold(vec![], |mut acc, reward| {
-        acc = sum_coins(acc, reward.amount.clone());
-        acc
-    });
+            let rewards = rewards_query?;
 
-    Ok(AllPendingRewards { rewards, total })
+            // sums the rewards
+            let total = filter_empty_coins(rewards.iter().fold(vec![], |mut acc, reward| {
+                acc = sum_coins(acc, reward.amount.clone());
+                acc
+            }));
+
+            Ok(AllPendingRewards { rewards, total })
+        },
+    }
+
+    
 }
 
 /// search for and return the grant settings for an abitrary granter

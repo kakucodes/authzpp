@@ -1,13 +1,16 @@
+use std::str::FromStr;
+
 use crate::msg::{AllowedWithdrawlSettings, SimulateExecuteResponse};
 use crate::queries::PendingReward;
 use crate::ContractError;
 use authzpp_utils::helpers::Expirable;
+use cosmos_sdk_proto::cosmos::base::v1beta1::DecCoin;
 use cosmos_sdk_proto::cosmos::distribution::v1beta1::MsgSetWithdrawAddress;
 use cosmos_sdk_proto::traits::MessageExt;
 use cosmos_sdk_proto::{
     cosmos::distribution::v1beta1::MsgWithdrawDelegatorReward, prost::EncodeError, Any,
 };
-use cosmwasm_std::{Addr, Api, BlockInfo, Coin, Decimal};
+use cosmwasm_std::{Addr, Api, BlockInfo, Coin, Decimal, Uint128};
 
 pub fn validate_granter_address(api: &dyn Api, granter: &str) -> Result<Addr, ContractError> {
     api.addr_validate(granter)
@@ -124,4 +127,19 @@ impl Expirable for AllowedWithdrawlSettings {
     fn is_expired(&self, block: &BlockInfo) -> bool {
         block.time > (self.expiration)
     }
+}
+
+pub fn dec_coin_to_coin(dec_coin: &DecCoin) -> Result<Coin, ContractError> {
+    Ok(Coin {
+        denom: dec_coin.denom.clone(),
+        amount: (Uint128::from_str(&dec_coin.amount)?.u128() / 1_000_000_000_000_000_000u128)
+            .into(),
+    })
+}
+
+pub fn filter_empty_coins(coins: Vec<Coin>) -> Vec<Coin> {
+    coins
+        .into_iter()
+        .filter(|Coin { amount, .. }| !amount.is_zero())
+        .collect()
 }
