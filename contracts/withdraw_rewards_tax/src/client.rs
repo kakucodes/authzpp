@@ -1,4 +1,4 @@
-use cosmwasm_std::{to_binary, Addr, CosmosMsg, QuerierWrapper, StdResult, WasmMsg};
+use cosmwasm_std::{to_binary, Addr, CosmosMsg, Decimal, QuerierWrapper, StdResult, WasmMsg};
 
 use crate::{
     msg::{ExecuteMsg, ExecuteSettings, GrantQueryResponse, QueryMsg, SimulateExecuteResponse},
@@ -16,20 +16,26 @@ impl WithdrawRewardsTaxClient {
     pub fn simulate(
         &self,
         querier: QuerierWrapper,
-        execute_settings: &ExecuteSettings,
+        percentage: Option<Decimal>,
     ) -> StdResult<SimulateExecuteResponse> {
         let simulation: StdResult<SimulateExecuteResponse> = querier.query_wasm_smart(
             self.contract_addr.clone(),
-            &QueryMsg::SimulateExecute(execute_settings.clone()),
+            &QueryMsg::SimulateExecute(ExecuteSettings {
+                delegator: self.delegator_addr.to_string(),
+                percentage,
+            }),
         );
 
         simulation
     }
 
-    pub fn execute(&self, execute_settings: &ExecuteSettings) -> StdResult<CosmosMsg> {
+    pub fn execute(&self, percentage: Option<Decimal>) -> StdResult<CosmosMsg> {
         Ok(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: self.contract_addr.to_string(),
-            msg: to_binary(&ExecuteMsg::Execute(execute_settings.clone()))?,
+            msg: to_binary(&ExecuteMsg::Execute(ExecuteSettings {
+                delegator: self.delegator_addr.to_string(),
+                percentage,
+            }))?,
             funds: vec![],
         }))
     }
@@ -37,11 +43,11 @@ impl WithdrawRewardsTaxClient {
     pub fn simulate_with_contract_execute(
         &self,
         querier: QuerierWrapper,
-        execute_settings: ExecuteSettings,
+        percentage: Option<Decimal>,
     ) -> Result<(SimulateExecuteResponse, CosmosMsg), ContractError> {
         Ok((
-            self.simulate(querier, &execute_settings)?,
-            self.execute(&execute_settings)?,
+            self.simulate(querier, percentage)?,
+            self.execute(percentage)?,
         ))
     }
 
