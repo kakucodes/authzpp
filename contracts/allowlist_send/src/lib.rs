@@ -1,3 +1,4 @@
+pub mod client;
 pub mod contract;
 mod error;
 pub mod helpers;

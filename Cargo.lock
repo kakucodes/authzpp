@@ -24,7 +24,7 @@ dependencies = [
 
 [[package]]
 name = "allowed-denoms-send"
-version = "0.2.4"
+version = "0.2.6"
 dependencies = [
  "authzpp-tt-wrappers",
  "authzpp-utils",
@@ -45,7 +45,7 @@ dependencies = [
 
 [[package]]
 name = "allowlist-send"
-version = "0.2.4"
+version = "0.2.6"
 dependencies = [
  "authzpp-tt-wrappers",
  "authzpp-utils",
@@ -100,7 +100,7 @@ dependencies = [
 
 [[package]]
 name = "authzpp-tt-wrappers"
-version = "0.2.4"
+version = "0.2.6"
 dependencies = [
  "cosmos-sdk-proto 0.19.0",
  "cosmwasm-schema",
@@ -115,7 +115,7 @@ dependencies = [
 
 [[package]]
 name = "authzpp-utils"
-version = "0.2.4"
+version = "0.2.6"
 dependencies = [
  "cosmos-sdk-proto 0.19.0",
  "cosmwasm-schema",
@@ -314,7 +314,7 @@ dependencies = [
 
 [[package]]
 name = "combine-grant"
-version = "0.2.4"
+version = "0.2.6"
 dependencies = [
  "authzpp-tt-wrappers",
  "authzpp-utils",
@@ -2584,7 +2584,7 @@ checksum = "1a515f5799fe4961cb532f983ce2b23082366b898e52ffbce459c86f67c8378a"
 
 [[package]]
 name = "withdraw-rewards-tax-grant"
-version = "0.2.4"
+version = "0.2.6"
 dependencies = [
  "authzpp-tt-wrappers",
  "authzpp-utils",
