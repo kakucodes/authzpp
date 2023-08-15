@@ -46,8 +46,9 @@ pub fn query_total_pending_rewards_stargate(
     };
 
     let bin: Binary = querier.query(&query)?;
-    let QueryDelegationTotalRewardsResponse { rewards, total } = QueryDelegationTotalRewardsResponse::decode(&mut Cursor::new(bin.to_vec()))
-        .map_err(ContractError::Decode)?;
+    let QueryDelegationTotalRewardsResponse { rewards, total } = 
+        QueryDelegationTotalRewardsResponse::decode(&mut Cursor::new(bin.to_vec()))
+            .map_err(ContractError::Decode)?;
 
 
     Ok(AllPendingRewards { 
