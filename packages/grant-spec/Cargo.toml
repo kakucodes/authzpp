@@ -1,17 +1,13 @@
 [package]
-name = "authzpp-utils"
+name = "cw-grant-spec"
 version = { workspace = true }
 authors = ["Marc <marc@yieldmos.com>"]
-description = "Utility functions used by Authzpp contracts"
+description = "Helper types and functions for specifying Authz grants that should be set before contract use"
 edition = { workspace = true }
 
 [dependencies]
 cosmwasm-std = { workspace = true }
 cosmwasm-schema = { workspace = true }
-cw-storage-plus = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
-cosmos-sdk-proto = { workspace = true }
-osmosis-std = { workspace = true }
-cw-grant-spec = { workspace = true }

@@ -1,8 +1,8 @@
 [package]
-name = "authzpp-utils"
+name = "authzpp-directory"
 version = { workspace = true }
 authors = ["Marc <marc@yieldmos.com>"]
-description = "Utility functions used by Authzpp contracts"
+description = "Directory/Aggregator of Authzpp contracts"
 edition = { workspace = true }
 
 [dependencies]
@@ -14,4 +14,3 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 cosmos-sdk-proto = { workspace = true }
 osmosis-std = { workspace = true }
-cw-grant-spec = { workspace = true }
