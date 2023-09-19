@@ -6,6 +6,9 @@ description = "Helper types and functions for specifying Authz grants that shoul
 edition = { workspace = true }
 
 [dependencies]
+# withdraw-rewards-tax-grant = { path = "../../contracts/withdraw_rewards_tax", features = [
+#     "msgs",
+# ] }
 cosmwasm-std = { workspace = true }
 cosmwasm-schema = { workspace = true }
 schemars = { workspace = true }

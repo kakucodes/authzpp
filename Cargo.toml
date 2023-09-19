@@ -1,5 +1,5 @@
 [workspace]
-members = ["packages/*", "contracts/*"]
+members = ["packages/*", "contracts/*", "scripts/"]
 
 [workspace.package]
 version = "0.2.7"
@@ -9,6 +9,9 @@ repository = "https://github.com/kakucodes/authzpp"
 
 
 [workspace.dependencies]
+cw-orch = { git = "https://github.com/AbstractSDK/cw-orchestrator", features = [
+    "daemon",
+] }
 cosmwasm-schema = "1.1.3"
 cosmwasm-std = { version = "1.1.3", default-features = false, features = [
     "stargate",
@@ -30,6 +33,9 @@ osmosis-std = { version = "0.15.3" }
 authzpp-utils = { path = "./packages/utils" }
 authzpp-tt-wrappers = { path = "./packages/test_tube_wrappers" }
 cw-grant-spec = { path = "./packages/grant-spec" }
+# withdraw-rewards-tax-grant = { path = "./contracts/withdraw_rewards_tax", features = [
+#     "library",
+# ] }
 
 
 [profile.release.package.withdraw-rewards-tax-grant]

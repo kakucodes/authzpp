@@ -1,0 +1,25 @@
+[package]
+name = "authzpp-scripts"
+version = "0.1.0"
+edition = "2021"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cw-orch = { workspace = true }
+withdraw-rewards-tax-grant = { path = "../contracts/withdraw_rewards_tax", features = [
+    "interface",
+] }
+tokio = "1.31.0"
+cosmwasm-std = { workspace = true }
+
+
+# [dev-dependencies]
+# Deps for deployment
+dotenv = { version = "0.15.0" }     # Enables loading of .env files
+env_logger = { version = "0.10.0" } # Enables logging to stdout
+
+[[bin]]
+name = "deploy"
+path = "src/deploy.rs"

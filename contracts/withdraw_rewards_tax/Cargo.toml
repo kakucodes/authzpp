@@ -27,10 +27,13 @@ incremental = false
 overflow-checks = true
 
 [features]
+default = ["dep:authzpp-utils", "dep:cw-grant-spec"]
 # for more explicit tests, cargo test --features=backtraces
 backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
-library = []
+library = ["dep:authzpp-utils"]
+interface = ["dep:cw-orch"]
+msgs = []
 
 
 [dependencies]
@@ -44,8 +47,11 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 semver = { workspace = true }
 cosmos-sdk-proto = { workspace = true }
-authzpp-utils = { workspace = true }
+authzpp-utils = { workspace = true, optional = true }
 osmosis-std = { workspace = true }
+cw-orch = { workspace = true, optional = true }
+cw-grant-spec = { workspace = true, optional = true }
+
 
 [dev-dependencies]
 cw-multi-test = { workspace = true }

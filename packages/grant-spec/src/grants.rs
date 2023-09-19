@@ -1,11 +1,15 @@
+use std::default;
+
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin};
+use cosmwasm_std::{Addr, Coin, Timestamp};
+// use withdraw_rewards_tax_grant::msg::GrantsSpecData as WithdrawTaxGrantsSpecData;
 
 #[cw_serde]
 pub struct GrantSpec {
     pub grant_type: GrantType,
     pub granter: Addr,
     pub grantee: Addr,
+    pub expiration: Timestamp,
 }
 
 #[cw_serde]
@@ -25,24 +29,27 @@ pub enum GrantType {
         contract_addr: Addr,
         /// Limit defines execution limits that are enforced and updated when the grant
         /// is applied. When the limit lapsed the grant is removed.
-        limit: Option<u64>,
+        limit: ContractExecutionAuthorizationLimit,
         /// Filter define more fine-grained control on the message payload passed
         /// to the contract in the operation. When no filter applies on execution, the
         /// operation is prohibited.
-        filter: Option<String>,
+        filter: ContractExecutionAuthorizationFilter,
     },
-    Authzpp {
-        contract_addr: Addr,
-        grant_type: AuthzppGrantType,
-    }, // TransferAuthorization,
+    // Authzpp {
+    //     contract_addr: Addr,
+    //     grant_type: AuthzppGrantType,
+    // }, // TransferAuthorization,
 }
 
-#[cw_serde]
-pub enum AuthzppGrantType {
-    WithdrawTax {},
-    AllowlistSend { receiver: Addr },
-    DenomAllowlistSend { allowed_denoms: Vec<String> },
-}
+// #[cw_serde]
+// pub struct GrantPartial {}
+
+// #[cw_serde]
+// pub enum AuthzppGrantType {
+//     WithdrawTax(WithdrawTaxGrantsSpecData),
+//     AllowlistSend { receiver: Addr },
+//     DenomAllowlistSend { allowed_denoms: Vec<String> },
+// }
 
 #[cw_serde]
 pub enum StakeAuthorizationType {
@@ -88,11 +95,20 @@ pub enum ContractExecutionAuthorizationLimit {
         amounts: Vec<Coin>,
     },
 }
+impl Default for ContractExecutionAuthorizationLimit {
+    fn default() -> Self {
+        ContractExecutionAuthorizationLimit::MaxCallsLimit {
+            remaining: u64::MAX,
+        }
+    }
+}
 
 #[cw_serde]
+#[derive(Default)]
 pub enum ContractExecutionAuthorizationFilter {
     /// AllowAllMessagesFilter is a wildcard to allow any type of contract payload
     /// message.
+    #[default]
     AllowAllMessagesFilter,
     /// AcceptedMessageKeysFilter accept only the specific contract message keys in
     /// the json object to be executed.

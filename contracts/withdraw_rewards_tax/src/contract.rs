@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::execute::{generate_reward_withdrawl_msgs, RewardExecutionMsgs};
 use crate::helpers::{split_rewards, validate_grantee_address, validate_granter_address};
-use crate::msg::{ExecuteMsg, ExecuteSettings, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, ExecuteSettings, GrantSpecData, InstantiateMsg, QueryMsg};
 use crate::queries::{self, query_active_grants_by_delegator};
 use crate::queries::{query_active_grants_by_grantee, query_pending_rewards};
 use crate::state::GRANTS;
@@ -9,12 +9,17 @@ use authzpp_utils::helpers::Expirable;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response};
+use cw_grant_spec::grantable_trait::{GrantStructure, Grantable};
+use cw_grant_spec::grants::{
+    ContractExecutionAuthorizationFilter, ContractExecutionAuthorizationLimit, GrantSpec, GrantType,
+};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:authzpp-withdraw-rewards-tax-grant";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
+#[cfg_attr(feature = "interface", cw_orch::interface_entry_point)]
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
@@ -27,11 +32,13 @@ pub fn instantiate(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
+#[cfg_attr(feature = "interface", cw_orch::interface_entry_point)]
 pub fn migrate(_deps: DepsMut, _env: Env, _msg: InstantiateMsg) -> Result<Response, ContractError> {
     Ok(Response::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
+#[cfg_attr(feature = "interface", cw_orch::interface_entry_point)]
 pub fn execute(
     deps: DepsMut,
     env: Env,
@@ -132,6 +139,7 @@ pub fn execute(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
+#[cfg_attr(feature = "interface", cw_orch::interface_entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
     match msg {
         QueryMsg::Version {} => to_binary(&queries::query_version()).map_err(ContractError::Std),
@@ -176,5 +184,66 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractErro
 
             to_binary(&split_rewards).map_err(ContractError::Std)
         }
+        QueryMsg::GrantSpec {
+            expiration,
+            granter,
+            grantee,
+            max_fee_percentage,
+        } => {
+            let grant_spec = QueryMsg::query_grants(GrantStructure {
+                granter,
+                grantee,
+                expiration,
+                grant_contract: env.contract.address,
+                grant_data: GrantSpecData { max_fee_percentage },
+            });
+
+            to_binary(&grant_spec).map_err(ContractError::Std)
+        }
+    }
+}
+
+impl Grantable for QueryMsg {
+    type GrantSettings = GrantSpecData;
+
+    fn query_grants(grant: GrantStructure<GrantSpecData>) -> Vec<GrantSpec> {
+        let GrantStructure {
+            granter,
+            grantee,
+            expiration,
+            grant_contract,
+            grant_data: _grant_data,
+        } = grant;
+
+        vec![
+            GrantSpec {
+                grant_type: GrantType::GenericAuthorization {
+                    msg: "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward".to_string(),
+                },
+                granter: granter.clone(),
+                grantee: grant_contract.clone(),
+                expiration,
+            },
+            GrantSpec {
+                grant_type: GrantType::GenericAuthorization {
+                    msg: "/cosmos.distribution.v1beta1.MsgSetWithdrawAddress".to_string(),
+                },
+                granter: granter.clone(),
+                grantee: grant_contract.clone(),
+                expiration,
+            },
+            GrantSpec {
+                grant_type: GrantType::ContractExecutionAuthorization {
+                    contract_addr: grant_contract,
+                    limit: ContractExecutionAuthorizationLimit::default(),
+                    filter: ContractExecutionAuthorizationFilter::AcceptedMessageKeysFilter {
+                        keys: vec!["execute".to_string()],
+                    },
+                },
+                granter: granter.clone(),
+                grantee,
+                expiration,
+            },
+        ]
     }
 }

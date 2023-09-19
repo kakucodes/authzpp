@@ -1,5 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, Timestamp};
+use cw_grant_spec::grants::GrantSpec;
 
 #[cw_serde]
 pub struct InstantiateMsg {}
@@ -13,6 +14,7 @@ pub type ActiveGrantsByDelegatorResponse = Option<GrantQueryResponse>;
 
 #[cw_serde]
 #[derive(QueryResponses)]
+#[cfg_attr(feature = "interface", derive(cw_orch::QueryFns))]
 pub enum QueryMsg {
     #[returns(VersionResponse)]
     Version {},
@@ -30,6 +32,19 @@ pub enum QueryMsg {
     /// Returns the amounts that the delegator and taxation address will receive if the execute function is called
     #[returns(SimulateExecuteResponse)]
     SimulateExecute(ExecuteSettings),
+
+    #[returns(Vec<GrantSpec>)]
+    GrantSpec {
+        expiration: Timestamp,
+        granter: Addr,
+        grantee: Addr,
+        max_fee_percentage: Decimal,
+    },
+}
+
+#[cw_serde]
+pub struct GrantSpecData {
+    pub max_fee_percentage: Decimal,
 }
 
 #[cw_serde]
@@ -53,6 +68,7 @@ pub struct VersionResponse {
 }
 
 #[cw_serde]
+#[cfg_attr(feature = "interface", derive(cw_orch::ExecuteFns))]
 pub enum ExecuteMsg {
     /// Creates a new grant that allows portions of one's staking rewards to be claimed by other addresses
     Grant(AllowedWithdrawlSettings),

@@ -30,9 +30,8 @@ pub enum QueryMsg {
     // /// Returns the amounts that the delegator and taxation address will receive if the execute function is called
     // #[returns(SimulateExecuteResponse)]
     // SimulateExecute(ExecuteSettings),
-
-    #[returns(Vec<GrantSpec>)]
-    QueryRequiredGrants {}
+    // #[returns(Vec<GrantSpec>)]
+    // QueryRequiredGrants {},
 }
 
 // #[cw_serde]
