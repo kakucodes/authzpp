@@ -19,6 +19,7 @@ pub enum GrantType {
     },
     SendAuthorization {
         spend_limit: Option<Coin>,
+        allow_list: Option<Vec<Addr>>,
     },
     StakeAuthorization {
         max_tokens: Option<Coin>,
