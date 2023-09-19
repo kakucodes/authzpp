@@ -2,7 +2,7 @@
 members = ["packages/*", "contracts/*", "scripts/"]
 
 [workspace.package]
-version = "0.2.7"
+version = "0.2.8"
 edition = "2021"
 authors = ["Marc <marc@yieldmos.com>"]
 repository = "https://github.com/kakucodes/authzpp"
