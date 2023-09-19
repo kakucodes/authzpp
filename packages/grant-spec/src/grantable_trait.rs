@@ -20,6 +20,7 @@ pub trait Grantable {
     fn query_grants(grant: GrantStructure<Self::GrantSettings>) -> Vec<GrantSpec>;
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct GrantStructure<T> {
     pub granter: Addr,
     pub grantee: Addr,
