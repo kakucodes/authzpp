@@ -31,7 +31,7 @@ pub enum GrantType {
         authorization_type: StakeAuthorizationType,
         validators: Option<StakeAuthorizationPolicy>,
     },
-    ContractExecutionAuthorization(Vec<ContracExecutionSetting>),
+    ContractExecutionAuthorization(Vec<ContractExecutionSetting>),
     // Authzpp {
     //     contract_addr: Addr,
     //     grant_type: AuthzppGrantType,
@@ -40,7 +40,7 @@ pub enum GrantType {
 
 #[cw_serde]
 #[derive(Eq)]
-pub struct ContracExecutionSetting {
+pub struct ContractExecutionSetting {
     pub contract_addr: Addr,
     /// Limit defines execution limits that are enforced and updated when the grant
     /// is applied. When the limit lapsed the grant is removed.
