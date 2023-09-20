@@ -13,6 +13,7 @@ pub struct GrantSpec {
 }
 
 #[cw_serde]
+#[derive(Eq)]
 pub enum GrantType {
     GenericAuthorization {
         msg: String,
@@ -53,6 +54,7 @@ pub enum GrantType {
 // }
 
 #[cw_serde]
+#[derive(Eq)]
 pub enum StakeAuthorizationType {
     /// AUTHORIZATION_TYPE_UNSPECIFIED specifies an unknown authorization type
     Unspecified = 0,
@@ -66,11 +68,13 @@ pub enum StakeAuthorizationType {
 
 /// Validators defines list of validator addresses.
 #[cw_serde]
+#[derive(Eq)]
 pub struct StakeAuthorizationValidators {
     pub address: Vec<String>,
 }
 
 #[cw_serde]
+#[derive(Eq)]
 pub enum StakeAuthorizationPolicy {
     /// allow_list specifies list of validator addresses to whom grantee can delegate tokens on behalf of granter's
     /// account.
@@ -80,6 +84,7 @@ pub enum StakeAuthorizationPolicy {
 }
 
 #[cw_serde]
+#[derive(Eq)]
 pub enum ContractExecutionAuthorizationLimit {
     MaxCallsLimit {
         /// Remaining number that is decremented on each execution
@@ -105,7 +110,7 @@ impl Default for ContractExecutionAuthorizationLimit {
 }
 
 #[cw_serde]
-#[derive(Default)]
+#[derive(Default, Eq)]
 pub enum ContractExecutionAuthorizationFilter {
     /// AllowAllMessagesFilter is a wildcard to allow any type of contract payload
     /// message.
