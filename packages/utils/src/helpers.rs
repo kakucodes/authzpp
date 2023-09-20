@@ -1,5 +1,5 @@
 use cosmwasm_std::{Addr, BlockInfo, StdResult, Timestamp};
-use cw_grant_spec::grants::GrantSpec;
+use cw_grant_spec::grants::GrantRequirement;
 
 pub trait Expirable {
     fn is_expired(&self, block: &BlockInfo) -> bool;

@@ -1,17 +1,22 @@
 use crate::error::ContractError;
 use crate::execute::{generate_reward_withdrawl_msgs, RewardExecutionMsgs};
 use crate::helpers::{split_rewards, validate_grantee_address, validate_granter_address};
-use crate::msg::{ExecuteMsg, ExecuteSettings, GrantSpecData, InstantiateMsg, QueryMsg};
+use crate::msg::{
+    AllowedWithdrawlSettings, ExecuteMsg, ExecuteSettings, GrantSpecData, InstantiateMsg, QueryMsg,
+};
 use crate::queries::{self, query_active_grants_by_delegator};
 use crate::queries::{query_active_grants_by_grantee, query_pending_rewards};
 use crate::state::GRANTS;
 use authzpp_utils::helpers::Expirable;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response};
+use cosmwasm_std::{
+    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult,
+};
 use cw_grant_spec::grantable_trait::{GrantStructure, Grantable};
 use cw_grant_spec::grants::{
-    ContractExecutionAuthorizationFilter, ContractExecutionAuthorizationLimit, GrantSpec, GrantType,
+    ContractExecutionAuthorizationFilter, ContractExecutionAuthorizationLimit, GrantRequirement,
+    GrantType,
 };
 
 // version info for migration info
@@ -189,16 +194,20 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractErro
             granter,
             grantee,
             max_fee_percentage,
+            taxation_addr,
         } => {
             let grant_spec = QueryMsg::query_grants(GrantStructure {
                 granter,
                 grantee,
                 expiration,
                 grant_contract: env.contract.address,
-                grant_data: GrantSpecData { max_fee_percentage },
+                grant_data: GrantSpecData {
+                    max_fee_percentage,
+                    taxation_addr,
+                },
             });
 
-            to_binary(&grant_spec).map_err(ContractError::Std)
+            to_binary(&grant_spec?).map_err(ContractError::Std)
         }
     }
 }
@@ -206,17 +215,17 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractErro
 impl Grantable for QueryMsg {
     type GrantSettings = GrantSpecData;
 
-    fn query_grants(grant: GrantStructure<GrantSpecData>) -> Vec<GrantSpec> {
+    fn query_grants(grant: GrantStructure<GrantSpecData>) -> StdResult<Vec<GrantRequirement>> {
         let GrantStructure {
             granter,
             grantee,
             expiration,
             grant_contract,
-            grant_data: _grant_data,
+            grant_data,
         } = grant;
 
-        vec![
-            GrantSpec {
+        Ok(vec![
+            GrantRequirement::GrantSpec {
                 grant_type: GrantType::GenericAuthorization {
                     msg: "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward".to_string(),
                 },
@@ -224,7 +233,7 @@ impl Grantable for QueryMsg {
                 grantee: grant_contract.clone(),
                 expiration,
             },
-            GrantSpec {
+            GrantRequirement::GrantSpec {
                 grant_type: GrantType::GenericAuthorization {
                     msg: "/cosmos.distribution.v1beta1.MsgSetWithdrawAddress".to_string(),
                 },
@@ -232,18 +241,15 @@ impl Grantable for QueryMsg {
                 grantee: grant_contract.clone(),
                 expiration,
             },
-            GrantSpec {
-                grant_type: GrantType::ContractExecutionAuthorization {
-                    contract_addr: grant_contract,
-                    limit: ContractExecutionAuthorizationLimit::default(),
-                    filter: ContractExecutionAuthorizationFilter::AcceptedMessageKeysFilter {
-                        keys: vec!["execute".to_string()],
-                    },
-                },
-                granter: granter.clone(),
-                grantee,
-                expiration,
+            GrantRequirement::ContractExec {
+                contract_addr: grant_contract,
+                msg: to_binary(&ExecuteMsg::Grant(AllowedWithdrawlSettings {
+                    grantee: grantee.to_string(),
+                    taxation_address: grant_data.taxation_addr.to_string(),
+                    max_fee_percentage: grant_data.max_fee_percentage,
+                    expiration,
+                }))?,
             },
-        ]
+        ])
     }
 }

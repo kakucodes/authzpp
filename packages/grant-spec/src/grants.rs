@@ -1,15 +1,19 @@
-use std::default;
-
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, Timestamp};
+use cosmwasm_std::{Addr, Binary, Coin, Timestamp};
 // use withdraw_rewards_tax_grant::msg::GrantsSpecData as WithdrawTaxGrantsSpecData;
 
 #[cw_serde]
-pub struct GrantSpec {
-    pub grant_type: GrantType,
-    pub granter: Addr,
-    pub grantee: Addr,
-    pub expiration: Timestamp,
+pub enum GrantRequirement {
+    GrantSpec {
+        grant_type: GrantType,
+        granter: Addr,
+        grantee: Addr,
+        expiration: Timestamp,
+    },
+    ContractExec {
+        contract_addr: Addr,
+        msg: Binary,
+    },
 }
 
 #[cw_serde]
@@ -19,7 +23,7 @@ pub enum GrantType {
         msg: String,
     },
     SendAuthorization {
-        spend_limit: Option<Coin>,
+        spend_limit: Option<Vec<Coin>>,
         allow_list: Option<Vec<Addr>>,
     },
     StakeAuthorization {
@@ -27,20 +31,24 @@ pub enum GrantType {
         authorization_type: StakeAuthorizationType,
         validators: Option<StakeAuthorizationPolicy>,
     },
-    ContractExecutionAuthorization {
-        contract_addr: Addr,
-        /// Limit defines execution limits that are enforced and updated when the grant
-        /// is applied. When the limit lapsed the grant is removed.
-        limit: ContractExecutionAuthorizationLimit,
-        /// Filter define more fine-grained control on the message payload passed
-        /// to the contract in the operation. When no filter applies on execution, the
-        /// operation is prohibited.
-        filter: ContractExecutionAuthorizationFilter,
-    },
+    ContractExecutionAuthorization(Vec<ContracExecutionSetting>),
     // Authzpp {
     //     contract_addr: Addr,
     //     grant_type: AuthzppGrantType,
     // }, // TransferAuthorization,
+}
+
+#[cw_serde]
+#[derive(Eq)]
+pub struct ContracExecutionSetting {
+    pub contract_addr: Addr,
+    /// Limit defines execution limits that are enforced and updated when the grant
+    /// is applied. When the limit lapsed the grant is removed.
+    pub limit: ContractExecutionAuthorizationLimit,
+    /// Filter define more fine-grained control on the message payload passed
+    /// to the contract in the operation. When no filter applies on execution, the
+    /// operation is prohibited.
+    pub filter: ContractExecutionAuthorizationFilter,
 }
 
 // #[cw_serde]

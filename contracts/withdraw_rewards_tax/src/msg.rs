@@ -1,6 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, Timestamp};
-use cw_grant_spec::grants::GrantSpec;
+use cw_grant_spec::grants::GrantRequirement;
 
 #[cw_serde]
 pub struct InstantiateMsg {}
@@ -33,18 +33,20 @@ pub enum QueryMsg {
     #[returns(SimulateExecuteResponse)]
     SimulateExecute(ExecuteSettings),
 
-    #[returns(Vec<GrantSpec>)]
+    #[returns(Vec<GrantRequirement>)]
     GrantSpec {
         expiration: Timestamp,
         granter: Addr,
         grantee: Addr,
         max_fee_percentage: Decimal,
+        taxation_addr: Addr,
     },
 }
 
 #[cw_serde]
 pub struct GrantSpecData {
     pub max_fee_percentage: Decimal,
+    pub taxation_addr: Addr,
 }
 
 #[cw_serde]

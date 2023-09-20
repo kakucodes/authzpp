@@ -1,5 +1,5 @@
-use crate::grants::GrantSpec;
-use cosmwasm_std::{Addr, Timestamp};
+use crate::grants::GrantRequirement;
+use cosmwasm_std::{Addr, StdResult, Timestamp};
 
 // use crate::grants::GrantSpec;
 
@@ -17,7 +17,8 @@ use cosmwasm_std::{Addr, Timestamp};
 pub trait Grantable {
     type GrantSettings;
 
-    fn query_grants(grant: GrantStructure<Self::GrantSettings>) -> Vec<GrantSpec>;
+    fn query_grants(grant: GrantStructure<Self::GrantSettings>)
+        -> StdResult<Vec<GrantRequirement>>;
 }
 
 #[derive(Clone, Debug, PartialEq)]
