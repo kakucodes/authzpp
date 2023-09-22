@@ -3,6 +3,7 @@ use cosmwasm_std::{Addr, Binary, Coin, Timestamp};
 // use withdraw_rewards_tax_grant::msg::GrantsSpecData as WithdrawTaxGrantsSpecData;
 
 #[cw_serde]
+#[derive(Eq)]
 pub enum GrantRequirement {
     GrantSpec {
         grant_type: GrantType,
@@ -32,10 +33,6 @@ pub enum GrantType {
         validators: Option<StakeAuthorizationPolicy>,
     },
     ContractExecutionAuthorization(Vec<ContractExecutionSetting>),
-    // Authzpp {
-    //     contract_addr: Addr,
-    //     grant_type: AuthzppGrantType,
-    // }, // TransferAuthorization,
 }
 
 #[cw_serde]
@@ -76,7 +73,7 @@ pub enum StakeAuthorizationType {
 
 /// Validators defines list of validator addresses.
 #[cw_serde]
-#[derive(Eq)]
+#[derive(Eq, PartialOrd, Ord)]
 pub struct StakeAuthorizationValidators {
     pub address: Vec<String>,
 }
