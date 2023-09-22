@@ -4,9 +4,7 @@
       "code_ids": {
         "withdraw_rewards_tax_grant": 3599
       },
-      "default": {
-        "withdraw_rewards_tax_grant": "juno17smslv6t6daej4zdydx432574zrn9av3304nsm5xf5k4yayz7zcqqz5ts3"
-      }
+      "default": {}
     },
     "uni-6": {
       "code_ids": {},
