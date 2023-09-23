@@ -35,10 +35,11 @@ pub fn main() -> anyhow::Result<()> {
     if withdraw_tax.address().is_err() {
         withdraw_tax.instantiate(
             &withdraw_rewards_tax_grant::msg::InstantiateMsg {},
-            None,
+            Some(&Addr::unchecked(chain_daemon.sender().to_string())),
             None,
         )?;
 
+        // this seems to sometimes need an increased gas multiplier in the .env to work
         chain_daemon
             .commit_any::<cosmrs::Any>(
                 vec![feeshare_msg(

@@ -14,6 +14,7 @@ pub enum GrantRequirement {
     ContractExec {
         contract_addr: Addr,
         msg: Binary,
+        sender: Addr,
     },
 }
 
@@ -131,6 +132,6 @@ pub enum ContractExecutionAuthorizationFilter {
     /// executed.
     AcceptedMessagesFilter {
         /// Messages is a list of raw messages.
-        messages: Vec<Vec<u8>>,
+        messages: Vec<Binary>,
     },
 }

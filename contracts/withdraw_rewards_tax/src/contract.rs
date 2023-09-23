@@ -242,6 +242,7 @@ impl Grantable for QueryMsg {
                 expiration,
             },
             GrantRequirement::ContractExec {
+                sender: granter.clone(),
                 contract_addr: grant_contract,
                 msg: to_binary(&ExecuteMsg::Grant(AllowedWithdrawlSettings {
                     grantee: grantee.to_string(),
