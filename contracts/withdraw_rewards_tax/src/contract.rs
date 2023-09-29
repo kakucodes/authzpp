@@ -14,10 +14,7 @@ use cosmwasm_std::{
     to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult,
 };
 use cw_grant_spec::grantable_trait::{GrantStructure, Grantable};
-use cw_grant_spec::grants::{
-    ContractExecutionAuthorizationFilter, ContractExecutionAuthorizationLimit, GrantRequirement,
-    GrantType,
-};
+use cw_grant_spec::grants::{GrantRequirement, GrantType};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:authzpp-withdraw-rewards-tax-grant";

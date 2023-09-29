@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Binary, Coin, Timestamp};
+use cosmwasm_std::{coins, Addr, Binary, Coin, Timestamp};
 // use withdraw_rewards_tax_grant::msg::GrantsSpecData as WithdrawTaxGrantsSpecData;
 
 #[cw_serde]
@@ -111,6 +111,13 @@ impl Default for ContractExecutionAuthorizationLimit {
     fn default() -> Self {
         ContractExecutionAuthorizationLimit::MaxCallsLimit {
             remaining: u64::MAX,
+        }
+    }
+}
+impl ContractExecutionAuthorizationLimit {
+    pub fn single_fund_limit(denom: impl Into<String>) -> Self {
+        self::ContractExecutionAuthorizationLimit::MaxFundsLimit {
+            amounts: coins(u128::MAX, denom),
         }
     }
 }
