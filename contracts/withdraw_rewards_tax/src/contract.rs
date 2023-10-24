@@ -14,7 +14,7 @@ use cosmwasm_std::{
     to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult,
 };
 use cw_grant_spec::grantable_trait::{GrantStructure, Grantable};
-use cw_grant_spec::grants::{GrantRequirement, GrantType};
+use cw_grant_spec::grants::{AuthorizationType, GrantRequirement, RevokeRequirement};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:authzpp-withdraw-rewards-tax-grant";
@@ -212,6 +212,37 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractErro
 impl Grantable for QueryMsg {
     type GrantSettings = GrantSpecData;
 
+    fn query_revokes(grant: GrantStructure<GrantSpecData>) -> StdResult<Vec<RevokeRequirement>> {
+        Self::query_grants(grant)?
+            .into_iter()
+            .map(|grant_req| -> StdResult<RevokeRequirement> {
+                match grant_req {
+                    GrantRequirement::GrantSpec {
+                        grant_type,
+                        granter,
+                        grantee,
+                        expiration,
+                    } => Ok(GrantRequirement::GrantSpec {
+                        grant_type,
+                        granter,
+                        grantee,
+                        expiration,
+                    }
+                    .into()),
+                    GrantRequirement::ContractExec {
+                        contract_addr,
+                        sender,
+                        ..
+                    } => Ok(RevokeRequirement::ContractExec {
+                        contract_addr,
+                        msg: to_binary(&ExecuteMsg::Revoke())?,
+                        sender,
+                    }),
+                }
+            })
+            .collect::<StdResult<Vec<RevokeRequirement>>>()
+    }
+
     fn query_grants(grant: GrantStructure<GrantSpecData>) -> StdResult<Vec<GrantRequirement>> {
         let GrantStructure {
             granter,
@@ -223,7 +254,7 @@ impl Grantable for QueryMsg {
 
         Ok(vec![
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::GenericAuthorization {
+                grant_type: AuthorizationType::GenericAuthorization {
                     msg: "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward".to_string(),
                 },
                 granter: granter.clone(),
@@ -231,7 +262,7 @@ impl Grantable for QueryMsg {
                 expiration,
             },
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::GenericAuthorization {
+                grant_type: AuthorizationType::GenericAuthorization {
                     msg: "/cosmos.distribution.v1beta1.MsgSetWithdrawAddress".to_string(),
                 },
                 granter: granter.clone(),
@@ -239,7 +270,7 @@ impl Grantable for QueryMsg {
                 expiration,
             },
             GrantRequirement::ContractExec {
-                sender: granter.clone(),
+                sender: granter,
                 contract_addr: grant_contract,
                 msg: to_binary(&ExecuteMsg::Grant(AllowedWithdrawlSettings {
                     grantee: grantee.to_string(),

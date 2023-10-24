@@ -1,36 +1,21 @@
 use crate::grants::{
-    ContractExecutionAuthorizationFilter, ContractExecutionAuthorizationLimit,
-    ContractExecutionSetting, GrantRequirement, GrantType, StakeAuthorizationPolicy,
+    AuthorizationType, ContractExecutionAuthorizationFilter, ContractExecutionAuthorizationLimit,
+    ContractExecutionSetting, GrantRequirement, RevokeRequirement, StakeAuthorizationPolicy,
     StakeAuthorizationType, StakeAuthorizationValidators,
 };
 use cosmwasm_std::{Addr, Coin, StdResult, Timestamp};
 use itertools::Itertools;
-use std::{
-    collections::HashMap,
-    hash::Hash,
-    hash::Hasher,
-    u64,
-    vec::{self, IntoIter},
-};
-
-// use crate::grants::GrantSpec;
-
-// pub trait AuthzppGrantable {
-//     type GrantSettings;
-//     type ExecuteSettings;
-
-//     fn get_grant_spec(
-//         &self,
-//         settings: &Self::GrantSettings,
-//         contract_addr: &Addr,
-//     ) -> Vec<GrantSpec>;
-// }
+use std::u64;
 
 pub trait Grantable {
     type GrantSettings;
 
     fn query_grants(grant: GrantStructure<Self::GrantSettings>)
         -> StdResult<Vec<GrantRequirement>>;
+
+    fn query_revokes(
+        grant: GrantStructure<Self::GrantSettings>,
+    ) -> StdResult<Vec<RevokeRequirement>>;
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -49,11 +34,12 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
     let mut generic_authorizations = vec![];
     let mut send_authorizations = vec![];
     let mut contract_execute_authorizations = vec![];
+    let mut transfer_authorizations = vec![];
     let mut contract_executions = vec![];
 
     grants.into_iter().for_each(|grant| match grant {
         GrantRequirement::GrantSpec {
-            grant_type: GrantType::StakeAuthorization { .. },
+            grant_type: AuthorizationType::StakeAuthorization { .. },
             ..
         } => {
             // only add if it's unique
@@ -62,7 +48,7 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
             }
         }
         GrantRequirement::GrantSpec {
-            grant_type: GrantType::GenericAuthorization { .. },
+            grant_type: AuthorizationType::GenericAuthorization { .. },
             ..
         } => {
             // only add if it's unique
@@ -71,7 +57,7 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
             }
         }
         GrantRequirement::GrantSpec {
-            grant_type: GrantType::SendAuthorization { .. },
+            grant_type: AuthorizationType::SendAuthorization { .. },
             ..
         } => {
             // only add if it's unique
@@ -80,12 +66,21 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
             }
         }
         GrantRequirement::GrantSpec {
-            grant_type: GrantType::ContractExecutionAuthorization(_),
+            grant_type: AuthorizationType::ContractExecutionAuthorization(_),
             ..
         } => {
             // only add if it's unique
             if !contract_execute_authorizations.contains(&grant) {
                 contract_execute_authorizations.push(grant)
+            }
+        }
+        GrantRequirement::GrantSpec {
+            grant_type: AuthorizationType::TransferAuthorization { .. },
+            ..
+        } => {
+            // TODO: update transfer logic
+            if !transfer_authorizations.contains(&grant) {
+                transfer_authorizations.push(grant)
             }
         }
         GrantRequirement::ContractExec { .. } => contract_executions.push(grant),
@@ -98,11 +93,11 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
     let stake_authorizations = stake_authorizations
         .iter()
         .fold(
-            Vec::<(StakeAuthKey, (GrantType, Timestamp))>::new(),
+            Vec::<(StakeAuthKey, (AuthorizationType, Timestamp))>::new(),
             |mut all_stake_grants, stake_grant| {
                 if let GrantRequirement::GrantSpec {
                     grant_type:
-                        GrantType::StakeAuthorization {
+                        AuthorizationType::StakeAuthorization {
                             max_tokens,
                             authorization_type,
                             validators,
@@ -126,7 +121,7 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
                         let new_expiration = all_stake_grants[i].1 .1.max(expiration);
 
                         let new_validators = combine_stake_auth_policies(
-                            if let GrantType::StakeAuthorization {
+                            if let AuthorizationType::StakeAuthorization {
                                 validators: a_validators,
                                 ..
                             } = all_stake_grants[i].1 .0.clone()
@@ -135,11 +130,11 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
                             } else {
                                 None
                             },
-                            validators.clone(),
+                            validators,
                         );
 
                         all_stake_grants[i].1 = (
-                            GrantType::StakeAuthorization {
+                            AuthorizationType::StakeAuthorization {
                                 // TODO: more intelligent max_tokens merging
                                 // for now just set no max
                                 max_tokens: None,
@@ -154,7 +149,7 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
                         all_stake_grants.push((
                             (granter.clone(), grantee.clone(), authorization_type.clone()),
                             (
-                                GrantType::StakeAuthorization {
+                                AuthorizationType::StakeAuthorization {
                                     max_tokens,
                                     authorization_type,
                                     validators,
@@ -186,11 +181,11 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
     let send_authorizations = send_authorizations
         .iter()
         .fold(
-            Vec::<((Addr, Addr), (GrantType, Timestamp))>::new(),
+            Vec::<((Addr, Addr), (AuthorizationType, Timestamp))>::new(),
             |mut all_send_grants, send_grant| {
                 if let GrantRequirement::GrantSpec {
                     grant_type:
-                        GrantType::SendAuthorization {
+                        AuthorizationType::SendAuthorization {
                             spend_limit: b_send_limit,
                             allow_list: b_allow_list,
                         },
@@ -208,7 +203,7 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
                         // take whichever expiration is later
                         let new_expiration = all_send_grants[i].1 .1.max(expiration);
 
-                        let new_grant_type = if let GrantType::SendAuthorization {
+                        let new_grant_type = if let AuthorizationType::SendAuthorization {
                             spend_limit: a_spend_limit,
                             allow_list: a_allow_list,
                         } = all_send_grants[i].1 .0.clone()
@@ -233,7 +228,7 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
                         all_send_grants.push((
                             (granter.clone(), grantee.clone()),
                             (
-                                GrantType::SendAuthorization {
+                                AuthorizationType::SendAuthorization {
                                     spend_limit: b_send_limit,
                                     allow_list: b_allow_list,
                                 },
@@ -264,11 +259,11 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
     let contract_execute_authorizations = contract_execute_authorizations
         .iter()
         .fold(
-            Vec::<((Addr, Addr), (GrantType, Timestamp))>::new(),
+            Vec::<((Addr, Addr), (AuthorizationType, Timestamp))>::new(),
             |mut all_send_grants, send_grant| {
                 if let GrantRequirement::GrantSpec {
                     grant_type:
-                        GrantType::ContractExecutionAuthorization(
+                        AuthorizationType::ContractExecutionAuthorization(
                             additional_contract_execution_settings,
                         ),
                     granter,
@@ -284,33 +279,21 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
                         (
                             _,
                             (
-                                GrantType::ContractExecutionAuthorization(
+                                AuthorizationType::ContractExecutionAuthorization(
                                     existing_contract_execution_settings,
                                 ),
                                 existing_timestamp,
                             ),
                         ),
-                    )) = matching_index.clone()
+                    )) = matching_index
                     {
                         // if the grant already exists, we need to update the max_tokens and validators
 
                         // take whichever expiration is later
-                        let new_expiration = existing_timestamp.clone().max(additional_timestamp);
-
-                        // let new_grant_type = if let GrantType::ContractExecutionAuthorization(
-                        //     b_contract_execution_settings,
-                        // ) = all_send_grants[i].1 .0.clone()
-                        // {
-                        //     combine_contract_execute_auths(
-                        //         contract_execution_settings,
-                        //         b_contract_execution_settings,
-                        //     )
-                        // } else {
-                        //     panic!("This should never happen")
-                        // };
+                        let new_expiration = (*existing_timestamp).max(additional_timestamp);
 
                         all_send_grants[i].1 = (
-                            GrantType::ContractExecutionAuthorization(
+                            AuthorizationType::ContractExecutionAuthorization(
                                 [
                                     additional_contract_execution_settings,
                                     existing_contract_execution_settings.clone(),
@@ -325,7 +308,7 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
                         all_send_grants.push((
                             (granter.clone(), grantee.clone()),
                             (
-                                GrantType::ContractExecutionAuthorization(
+                                AuthorizationType::ContractExecutionAuthorization(
                                     additional_contract_execution_settings,
                                 ),
                                 additional_timestamp,
@@ -354,6 +337,7 @@ pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement>
         send_authorizations,
         stake_authorizations,
         contract_executions,
+        transfer_authorizations,
     ]
     .concat()
 }
@@ -363,7 +347,7 @@ fn combine_send_auths(
     a_allow_list: Option<Vec<Addr>>,
     b_spend_limit: Option<Vec<Coin>>,
     b_allow_list: Option<Vec<Addr>>,
-) -> GrantType {
+) -> AuthorizationType {
     println!(
         "a_allow_list: {:?}, b_allow_list: {:?}",
         a_allow_list, b_allow_list,
@@ -380,7 +364,7 @@ fn combine_send_auths(
         _ => None,
     };
 
-    GrantType::SendAuthorization {
+    AuthorizationType::SendAuthorization {
         spend_limit,
         allow_list,
     }
@@ -436,7 +420,7 @@ fn combine_stake_auth_policies(
 fn combine_contract_execute_auths(
     a_auths: Vec<ContractExecutionSetting>,
     b_auths: Vec<ContractExecutionSetting>,
-) -> GrantType {
+) -> AuthorizationType {
     // let new_auth_settings = [a_auths, b_auths]
     //     .concat()
     //     .into_iter()
@@ -468,7 +452,7 @@ fn combine_contract_execute_auths(
     //     .collect::<Vec<ContractExecutionSetting>>();
 
     // GrantType::ContractExecutionAuthorization(new_auth_settings)
-    GrantType::ContractExecutionAuthorization([a_auths, b_auths].concat())
+    AuthorizationType::ContractExecutionAuthorization([a_auths, b_auths].concat())
 }
 
 // both settings are expected to have the same contract_addr otherwise there's nothing to
@@ -494,12 +478,7 @@ fn combine_contract_execution_settings(
         ContractExecutionAuthorizationLimit::MaxFundsLimit { amounts } => (u64::MIN, amounts),
     };
 
-    let limit = match (
-        a_limits.clone(),
-        a_amounts.clone(),
-        b_limits.clone(),
-        b_amounts.clone(),
-    ) {
+    let limit = match (a_limits, a_amounts, b_limits, b_amounts) {
         (u64::MIN, a_amounts, u64::MIN, b_amounts) => {
             ContractExecutionAuthorizationLimit::MaxFundsLimit {
                 amounts: [a_amounts, b_amounts].concat(),
@@ -518,7 +497,7 @@ fn combine_contract_execution_settings(
         }
     };
 
-    let filters = match (a.filter.clone(), b.filter.clone()) {
+    let filters = match (a.filter.clone(), b.filter) {
         (ContractExecutionAuthorizationFilter::AllowAllMessagesFilter, _)
         | (_, ContractExecutionAuthorizationFilter::AllowAllMessagesFilter) => {
             vec![ContractExecutionAuthorizationFilter::AllowAllMessagesFilter]
@@ -565,7 +544,7 @@ fn combine_contract_execution_settings(
         .map(|filter| ContractExecutionSetting {
             contract_addr: a.contract_addr.clone(),
             limit: limit.clone(),
-            filter: filter.clone(),
+            filter,
         })
         .collect()
 }

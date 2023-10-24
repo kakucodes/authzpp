@@ -6,7 +6,7 @@ use cosmwasm_std::{coins, Addr, Binary, Coin, Timestamp};
 #[derive(Eq)]
 pub enum GrantRequirement {
     GrantSpec {
-        grant_type: GrantType,
+        grant_type: AuthorizationType,
         granter: Addr,
         grantee: Addr,
         expiration: Timestamp,
@@ -18,9 +18,50 @@ pub enum GrantRequirement {
     },
 }
 
+impl From<GrantRequirement> for RevokeRequirement {
+    fn from(val: GrantRequirement) -> Self {
+        match val {
+            GrantRequirement::GrantSpec {
+                grant_type,
+                granter,
+                grantee,
+                ..
+            } => RevokeRequirement::RevokeSpec {
+                grant_type,
+                granter,
+                grantee,
+            },
+            GrantRequirement::ContractExec {
+                contract_addr,
+                msg,
+                sender,
+            } => RevokeRequirement::ContractExec {
+                contract_addr,
+                msg,
+                sender,
+            },
+        }
+    }
+}
+
 #[cw_serde]
 #[derive(Eq)]
-pub enum GrantType {
+pub enum RevokeRequirement {
+    RevokeSpec {
+        grant_type: AuthorizationType,
+        granter: Addr,
+        grantee: Addr,
+    },
+    ContractExec {
+        contract_addr: Addr,
+        msg: Binary,
+        sender: Addr,
+    },
+}
+
+#[cw_serde]
+#[derive(Eq)]
+pub enum AuthorizationType {
     GenericAuthorization {
         msg: String,
     },
@@ -34,6 +75,14 @@ pub enum GrantType {
         validators: Option<StakeAuthorizationPolicy>,
     },
     ContractExecutionAuthorization(Vec<ContractExecutionSetting>),
+    TransferAuthorization {
+        source_port: String,
+        source_channel: String,
+        // spend limitation on the channel
+        spend_limit: Vec<Coin>,
+        // allow list of receivers, an empty allow list permits any receiver address
+        allow_list: Vec<String>,
+    },
 }
 
 #[cw_serde]
@@ -48,16 +97,6 @@ pub struct ContractExecutionSetting {
     /// operation is prohibited.
     pub filter: ContractExecutionAuthorizationFilter,
 }
-
-// #[cw_serde]
-// pub struct GrantPartial {}
-
-// #[cw_serde]
-// pub enum AuthzppGrantType {
-//     WithdrawTax(WithdrawTaxGrantsSpecData),
-//     AllowlistSend { receiver: Addr },
-//     DenomAllowlistSend { allowed_denoms: Vec<String> },
-// }
 
 #[cw_serde]
 #[derive(Eq)]

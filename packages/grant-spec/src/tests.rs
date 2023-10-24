@@ -5,9 +5,9 @@ use cosmwasm_std::{Addr, Timestamp};
 use crate::{
     grantable_trait::dedupe_grant_reqs,
     grants::{
-        ContractExecutionAuthorizationFilter, ContractExecutionAuthorizationLimit,
-        ContractExecutionSetting, GrantRequirement, GrantType, StakeAuthorizationPolicy,
-        StakeAuthorizationType, StakeAuthorizationValidators,
+        AuthorizationType, ContractExecutionAuthorizationFilter,
+        ContractExecutionAuthorizationLimit, ContractExecutionSetting, GrantRequirement,
+        StakeAuthorizationPolicy, StakeAuthorizationType, StakeAuthorizationValidators,
     },
 };
 
@@ -23,7 +23,7 @@ pub fn dedupe__basic_grants() {
     assert_eq!(
         dedupe_grant_reqs(vec![
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::StakeAuthorization {
+                grant_type: AuthorizationType::StakeAuthorization {
                     max_tokens: None,
                     authorization_type: StakeAuthorizationType::Delegate,
                     validators: None
@@ -33,7 +33,7 @@ pub fn dedupe__basic_grants() {
                 expiration: Timestamp::from_seconds(0)
             },
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::StakeAuthorization {
+                grant_type: AuthorizationType::StakeAuthorization {
                     max_tokens: None,
                     authorization_type: StakeAuthorizationType::Delegate,
                     validators: None
@@ -44,7 +44,7 @@ pub fn dedupe__basic_grants() {
             }
         ]),
         vec![GrantRequirement::GrantSpec {
-            grant_type: GrantType::StakeAuthorization {
+            grant_type: AuthorizationType::StakeAuthorization {
                 max_tokens: None,
                 authorization_type: StakeAuthorizationType::Delegate,
                 validators: None
@@ -58,7 +58,7 @@ pub fn dedupe__basic_grants() {
     assert_eq!(
         dedupe_grant_reqs(vec![
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::StakeAuthorization {
+                grant_type: AuthorizationType::StakeAuthorization {
                     max_tokens: None,
                     authorization_type: StakeAuthorizationType::Delegate,
                     validators: Some(StakeAuthorizationPolicy::AllowList(
@@ -72,7 +72,7 @@ pub fn dedupe__basic_grants() {
                 expiration: Timestamp::from_seconds(0)
             },
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::StakeAuthorization {
+                grant_type: AuthorizationType::StakeAuthorization {
                     max_tokens: None,
                     authorization_type: StakeAuthorizationType::Delegate,
                     validators: Some(StakeAuthorizationPolicy::AllowList(
@@ -87,7 +87,7 @@ pub fn dedupe__basic_grants() {
             }
         ]),
         vec![GrantRequirement::GrantSpec {
-            grant_type: GrantType::StakeAuthorization {
+            grant_type: AuthorizationType::StakeAuthorization {
                 max_tokens: None,
                 authorization_type: StakeAuthorizationType::Delegate,
                 validators: Some(StakeAuthorizationPolicy::AllowList(
@@ -106,7 +106,7 @@ pub fn dedupe__basic_grants() {
     assert_eq!(
         dedupe_grant_reqs(vec![
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::SendAuthorization {
+                grant_type: AuthorizationType::SendAuthorization {
                     spend_limit: None,
                     allow_list: Some(vec![grantee1.clone(), validator1.clone()])
                 },
@@ -115,7 +115,7 @@ pub fn dedupe__basic_grants() {
                 expiration: Timestamp::from_seconds(0)
             },
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::SendAuthorization {
+                grant_type: AuthorizationType::SendAuthorization {
                     spend_limit: None,
                     allow_list: Some(vec![grantee2.clone(), validator1.clone()])
                 },
@@ -124,7 +124,7 @@ pub fn dedupe__basic_grants() {
                 expiration: Timestamp::from_seconds(0)
             },
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::SendAuthorization {
+                grant_type: AuthorizationType::SendAuthorization {
                     spend_limit: None,
                     allow_list: Some(vec![validator2.clone()])
                 },
@@ -135,7 +135,7 @@ pub fn dedupe__basic_grants() {
         ]),
         vec![
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::SendAuthorization {
+                grant_type: AuthorizationType::SendAuthorization {
                     spend_limit: None,
                     allow_list: Some(vec![grantee1.clone(), validator1.clone(), grantee2.clone()])
                 },
@@ -144,7 +144,7 @@ pub fn dedupe__basic_grants() {
                 expiration: Timestamp::from_seconds(0)
             },
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::SendAuthorization {
+                grant_type: AuthorizationType::SendAuthorization {
                     spend_limit: None,
                     allow_list: Some(vec![validator2.clone()])
                 },
@@ -170,7 +170,7 @@ pub fn dedupe_contract_auth_grants() {
     assert_eq!(
         dedupe_grant_reqs(vec![
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::ContractExecutionAuthorization(vec![
+                grant_type: AuthorizationType::ContractExecutionAuthorization(vec![
                     ContractExecutionSetting {
                         contract_addr: contract1.clone(),
                         limit: ContractExecutionAuthorizationLimit::MaxCallsLimit {
@@ -186,7 +186,7 @@ pub fn dedupe_contract_auth_grants() {
                 expiration: Timestamp::from_seconds(0)
             },
             GrantRequirement::GrantSpec {
-                grant_type: GrantType::ContractExecutionAuthorization(vec![
+                grant_type: AuthorizationType::ContractExecutionAuthorization(vec![
                     ContractExecutionSetting {
                         contract_addr: contract1.clone(),
                         limit: ContractExecutionAuthorizationLimit::MaxCallsLimit {
@@ -203,7 +203,7 @@ pub fn dedupe_contract_auth_grants() {
             },
         ]),
         vec![GrantRequirement::GrantSpec {
-            grant_type: GrantType::ContractExecutionAuthorization(vec![
+            grant_type: AuthorizationType::ContractExecutionAuthorization(vec![
                 ContractExecutionSetting {
                     contract_addr: contract1.clone(),
                     limit: ContractExecutionAuthorizationLimit::MaxCallsLimit {
