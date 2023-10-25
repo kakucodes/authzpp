@@ -76,23 +76,18 @@ pub fn query_pending_rewards(
             let rewards_query: Result<Vec<PendingReward>, ContractError> = querier
                 .query_all_delegations(delegator_addr)?
                 .into_iter()
-                
-                .filter_map(
+                .map(
                     // each delegation is queried for its pending rewards
                     |delegation| match querier.query_delegation(delegator_addr, delegation.validator) {
                         Ok(Some(FullDelegation {
                             validator,
                             accumulated_rewards,
                             ..
-                        })) if !accumulated_rewards.is_empty() => Some(Ok(PendingReward {
+                        })) => Ok(PendingReward {
                             validator,
                             amount: accumulated_rewards,
-                        })),
-                        Ok(Some(FullDelegation {
-                            
-                            ..
-                        })) => None,
-                        _ => Some(Err(ContractError::QueryPendingRewardsFailure)),
+                        }),
+                        _ => Err(ContractError::QueryPendingRewardsFailure),
                     },
                 )
                 .collect();
