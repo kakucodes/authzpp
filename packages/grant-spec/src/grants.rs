@@ -75,14 +75,18 @@ pub enum AuthorizationType {
         validators: Option<StakeAuthorizationPolicy>,
     },
     ContractExecutionAuthorization(Vec<ContractExecutionSetting>),
-    TransferAuthorization {
-        source_port: String,
-        source_channel: String,
-        // spend limitation on the channel
-        spend_limit: Vec<Coin>,
-        // allow list of receivers, an empty allow list permits any receiver address
-        allow_list: Vec<String>,
-    },
+    TransferAuthorization(Vec<TransferAuthorizationSetting>),
+}
+
+#[cw_serde]
+#[derive(Eq, Default)]
+pub struct TransferAuthorizationSetting {
+    source_port: String,
+    source_channel: String,
+    // spend limitation on the channel
+    spend_limit: Vec<Coin>,
+    // allow list of receivers, an empty allow list permits any receiver address
+    allow_list: Vec<String>,
 }
 
 #[cw_serde]
@@ -113,7 +117,7 @@ pub enum StakeAuthorizationType {
 
 /// Validators defines list of validator addresses.
 #[cw_serde]
-#[derive(Eq, PartialOrd, Ord)]
+#[derive(Eq)]
 pub struct StakeAuthorizationValidators {
     pub address: Vec<String>,
 }
