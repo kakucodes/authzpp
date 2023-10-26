@@ -27,7 +27,7 @@ impl From<GrantRequirement> for RevokeRequirement {
                 grantee,
                 ..
             } => RevokeRequirement::RevokeSpec {
-                grant_type,
+                grant_type: grant_type.msg_type_url(),
                 granter,
                 grantee,
             },
@@ -48,7 +48,7 @@ impl From<GrantRequirement> for RevokeRequirement {
 #[derive(Eq)]
 pub enum RevokeRequirement {
     RevokeSpec {
-        grant_type: AuthorizationType,
+        grant_type: String,
         granter: Addr,
         grantee: Addr,
     },
@@ -76,6 +76,25 @@ pub enum AuthorizationType {
     },
     ContractExecutionAuthorization(Vec<ContractExecutionSetting>),
     TransferAuthorization(Vec<TransferAuthorizationSetting>),
+}
+impl AuthorizationType {
+    pub fn msg_type_url(&self) -> String {
+        match self {
+            AuthorizationType::GenericAuthorization { msg } => msg.to_string(),
+            AuthorizationType::SendAuthorization { .. } => {
+                "/cosmos.bank.v1beta1.MsgSend".to_string()
+            }
+            AuthorizationType::StakeAuthorization { .. } => {
+                "/cosmos.staking.v1beta1.MsgDelegate".to_string()
+            }
+            AuthorizationType::ContractExecutionAuthorization { .. } => {
+                "/cosmwasm.wasm.v1beta1.MsgExecuteContract".to_string()
+            }
+            AuthorizationType::TransferAuthorization { .. } => {
+                "/ibc.applications.transfer.v1.MsgTransfer".to_string()
+            }
+        }
+    }
 }
 
 #[cw_serde]
