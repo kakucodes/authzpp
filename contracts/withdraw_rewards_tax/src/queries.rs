@@ -1,12 +1,22 @@
 use std::io::Cursor;
 
 use crate::{
-    helpers::{sum_coins, dec_coin_to_coin, filter_empty_coins, },
-    msg::{ VersionResponse, GrantQueryResponse, }, state::GRANTS,
+    helpers::{dec_coin_to_coin, filter_empty_coins, sum_coins},
+    msg::{GrantQueryResponse, VersionResponse},
+    state::GRANTS,
 };
 use authzpp_utils::helpers::Expirable;
-use cosmos_sdk_proto::{cosmos::distribution::v1beta1::{ QueryDelegationTotalRewardsRequest, QueryDelegationTotalRewardsResponse, DelegationDelegatorReward, }, traits::Message};
-use cosmwasm_std::{Addr, FullDelegation, QuerierWrapper, Storage, BlockInfo, StdResult, Order, Coin, Binary, QueryRequest, };
+use cosmos_sdk_proto::{
+    cosmos::distribution::v1beta1::{
+        DelegationDelegatorReward, QueryDelegationTotalRewardsRequest,
+        QueryDelegationTotalRewardsResponse,
+    },
+    traits::Message,
+};
+use cosmwasm_std::{
+    Addr, Binary, BlockInfo, Coin, FullDelegation, Order, QuerierWrapper, QueryRequest, StdResult,
+    Storage,
+};
 
 use crate::ContractError;
 
@@ -16,13 +26,13 @@ pub fn query_version() -> VersionResponse {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AllPendingRewards {
     pub rewards: Vec<PendingReward>,
     pub total: Vec<Coin>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PendingReward {
     pub validator: String,
     pub amount: Vec<Coin>,
@@ -34,8 +44,9 @@ pub fn query_total_pending_rewards_stargate(
     querier: &QuerierWrapper,
     delegator_addr: &Addr,
 ) -> Result<AllPendingRewards, ContractError> {
-
-    let bin = QueryDelegationTotalRewardsRequest{ delegator_address: delegator_addr.to_string() }
+    let bin = QueryDelegationTotalRewardsRequest {
+        delegator_address: delegator_addr.to_string(),
+    }
     .encode_to_vec();
 
     let data = Binary::from(bin);
@@ -46,20 +57,74 @@ pub fn query_total_pending_rewards_stargate(
     };
 
     let bin: Binary = querier.query(&query)?;
-    let QueryDelegationTotalRewardsResponse { rewards, total } = 
+    let QueryDelegationTotalRewardsResponse { rewards, total } =
         QueryDelegationTotalRewardsResponse::decode(&mut Cursor::new(bin.to_vec()))
             .map_err(ContractError::Decode)?;
 
+    Ok(AllPendingRewards {
+        total: total
+            .iter()
+            .map(dec_coin_to_coin)
+            .collect::<Result<Vec<Coin>, ContractError>>()?,
+        rewards: rewards
+            .into_iter()
+            .map(
+                |DelegationDelegatorReward {
+                     validator_address,
+                     reward,
+                 }| {
+                    Ok(PendingReward {
+                        validator: validator_address,
+                        amount: reward
+                            .iter()
+                            .map(dec_coin_to_coin)
+                            .collect::<Result<Vec<Coin>, ContractError>>()?,
+                    })
+                },
+            )
+            .collect::<Result<Vec<PendingReward>, ContractError>>()?,
+    })
+}
 
-    Ok(AllPendingRewards { 
-        total: total.iter().map(dec_coin_to_coin).collect::<Result<Vec<Coin>, ContractError>>()?,
-        rewards: rewards.into_iter().map(|DelegationDelegatorReward {
-            validator_address, reward }| Ok(PendingReward { 
-                validator: validator_address, 
-                amount: reward.iter().map(dec_coin_to_coin).collect::<Result<Vec<Coin>, ContractError>>()?
-            })).collect::<Result<Vec<PendingReward>, ContractError>>()?,
-        })
-    
+pub fn process_delegation_total_rewards_response(
+    QueryDelegationTotalRewardsResponse { rewards, total }: QueryDelegationTotalRewardsResponse,
+) -> Result<AllPendingRewards, ContractError> {
+    Ok(AllPendingRewards {
+        total: total
+            .iter()
+            .map(dec_coin_to_coin)
+            .collect::<Result<Vec<Coin>, ContractError>>()?,
+        rewards: rewards
+            .into_iter()
+            .filter_map(
+                |DelegationDelegatorReward {
+                     validator_address,
+                     reward,
+                 }| {
+                    let pending_amounts = reward
+                        .iter()
+                        // convert the dec coin to coin and filter out any empty coins
+                        .filter_map(|coin| {
+                            if let Ok(coin) = dec_coin_to_coin(coin) {
+                                if !coin.amount.is_zero() {
+                                    return Some(Ok(coin));
+                                }
+                            }
+                            None
+                        })
+                        .collect::<Result<Vec<Coin>, ContractError>>();
+
+                    match pending_amounts {
+                        Ok(amounts) if !amounts.is_empty() => Some(Ok(PendingReward {
+                            validator: validator_address,
+                            amount: amounts,
+                        })),
+                        _ => None,
+                    }
+                },
+            )
+            .collect::<Result<Vec<PendingReward>, ContractError>>()?,
+    })
 }
 
 /// Queries the pending staking rewards for a given delegator
@@ -67,7 +132,6 @@ pub fn query_pending_rewards(
     querier: &QuerierWrapper,
     delegator_addr: &Addr,
 ) -> Result<AllPendingRewards, ContractError> {
-
     // first try to get the pending rewards via stargate query to save gas
     match query_total_pending_rewards_stargate(querier, delegator_addr) {
         Ok(rewards) => Ok(rewards),
@@ -78,7 +142,9 @@ pub fn query_pending_rewards(
                 .into_iter()
                 .map(
                     // each delegation is queried for its pending rewards
-                    |delegation| match querier.query_delegation(delegator_addr, delegation.validator) {
+                    |delegation| match querier
+                        .query_delegation(delegator_addr, delegation.validator)
+                    {
                         Ok(Some(FullDelegation {
                             validator,
                             accumulated_rewards,
@@ -101,19 +167,21 @@ pub fn query_pending_rewards(
             }));
 
             Ok(AllPendingRewards { rewards, total })
-        },
+        }
     }
-
-    
 }
 
 /// search for and return the grant settings for an abitrary granter
-pub fn query_active_grants_by_delegator(storage: &dyn Storage, block: &BlockInfo, delegator_addr: &Addr ) -> StdResult<Option<GrantQueryResponse>> {
-    // get the grant for the delegator from state 
+pub fn query_active_grants_by_delegator(
+    storage: &dyn Storage,
+    block: &BlockInfo,
+    delegator_addr: &Addr,
+) -> StdResult<Option<GrantQueryResponse>> {
+    // get the grant for the delegator from state
     let grant_settings = GRANTS.load(storage, delegator_addr)?;
 
     Ok(Option::from(grant_settings)
-        .filter(|grant| 
+        .filter(|grant|
             // validate that the grant is still active and not expired
             grant.is_not_expired(block))
         .map(|allowed_withdrawls| GrantQueryResponse {
@@ -123,9 +191,13 @@ pub fn query_active_grants_by_delegator(storage: &dyn Storage, block: &BlockInfo
 }
 
 /// returns all of the grant settings that are for grants to the given grantee
-pub fn query_active_grants_by_grantee(storage: &dyn Storage, block: &BlockInfo, grantee: Addr) -> Vec<GrantQueryResponse> {
+pub fn query_active_grants_by_grantee(
+    storage: &dyn Storage,
+    block: &BlockInfo,
+    grantee: Addr,
+) -> Vec<GrantQueryResponse> {
     GRANTS
-    // grab all of the grants
+        // grab all of the grants
         .range(storage, None, None, Order::Ascending)
         // filter out the grants that are not for the requested grantee
         .filter_map(|item| {
@@ -141,6 +213,6 @@ pub fn query_active_grants_by_grantee(storage: &dyn Storage, block: &BlockInfo, 
                 }
             }
             None
-        })       
+        })
         .collect::<Vec<_>>()
 }

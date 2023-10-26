@@ -2,19 +2,23 @@ use authzpp_utils::msg_gen::exec_msg;
 use cosmos_sdk_proto::{
     cosmos::{
         authz::v1beta1::MsgExec,
-        distribution::v1beta1::{MsgSetWithdrawAddress, MsgWithdrawDelegatorReward},
+        base::v1beta1::DecCoin,
+        distribution::v1beta1::{
+            DelegationDelegatorReward, MsgSetWithdrawAddress, MsgWithdrawDelegatorReward,
+            QueryDelegationTotalRewardsResponse,
+        },
     },
     traits::{Message, MessageExt},
 };
-use cosmwasm_std::{Addr, BankMsg, Binary, Coin, CosmosMsg, Decimal, Timestamp};
+use cosmwasm_std::{coins, Addr, BankMsg, Binary, Coin, CosmosMsg, Decimal, Timestamp};
 
 use crate::{
     execute::{
         create_withdraw_rewards_exec_msg, generate_reward_withdrawl_msgs, RewardExecutionMsgs,
     },
-    helpers::{partition_coins_by_percentage, split_rewards, sum_coins},
+    helpers::{dec_coin_to_coin, partition_coins_by_percentage, split_rewards, sum_coins},
     msg::{AllowedWithdrawlSettings, SimulateExecuteResponse},
-    queries::{AllPendingRewards, PendingReward},
+    queries::{process_delegation_total_rewards_response, AllPendingRewards, PendingReward},
 };
 
 // unit tests for the sum_coins helper function
@@ -462,4 +466,124 @@ pub fn generate_rewards_msgs_without_rewards() {
     };
 
     assert_eq!(generated_msgs, expected_msgs);
+}
+
+#[test]
+fn test_deccoin_to_coin_fn() {
+    assert_eq!(
+        dec_coin_to_coin(&DecCoin {
+            denom: "ubtc".to_string(),
+            amount: "2000000000000000000".to_string()
+        })
+        .unwrap(),
+        Coin {
+            denom: "ubtc".to_string(),
+            amount: 2u128.into()
+        }
+    );
+}
+
+#[test]
+fn test_delegation_total_rewards_response() {
+    // test the process_delegation_total_rewards_response function to make sure it filters out empty rewards
+    let query_response: QueryDelegationTotalRewardsResponse = QueryDelegationTotalRewardsResponse {
+        rewards: vec![
+            DelegationDelegatorReward {
+                validator_address: "vali1".to_string(),
+                reward: vec![DecCoin {
+                    denom: "ubtc".to_string(),
+                    amount: "2500000000000000000000".to_string(),
+                }],
+            },
+            DelegationDelegatorReward {
+                validator_address: "vali2".to_string(),
+                reward: vec![DecCoin {
+                    denom: "ubtc".to_string(),
+                    amount: "0".to_string(),
+                }],
+            },
+        ],
+        total: vec![DecCoin {
+            denom: "ubtc".to_string(),
+            amount: "2500000000000000000000".to_string(),
+        }],
+    };
+
+    let expected_response = AllPendingRewards {
+        rewards: vec![PendingReward {
+            validator: "vali1".to_string(),
+            amount: vec![Coin {
+                denom: "ubtc".to_string(),
+                amount: 2_500u128.into(),
+            }],
+        }],
+        total: coins(2_500, "ubtc"),
+    };
+
+    assert_eq!(
+        process_delegation_total_rewards_response(query_response).unwrap(),
+        expected_response
+    );
+
+    let query_response = QueryDelegationTotalRewardsResponse {
+        rewards: vec![
+            DelegationDelegatorReward {
+                validator_address: "vali0".to_string(),
+                reward: vec![DecCoin {
+                    denom: "ubtc".to_string(),
+                    amount: "0".to_string(),
+                }],
+            },
+            DelegationDelegatorReward {
+                validator_address: "vali1".to_string(),
+                reward: vec![DecCoin {
+                    denom: "ubtc".to_string(),
+                    amount: "2500000000000000000000".to_string(),
+                }],
+            },
+            DelegationDelegatorReward {
+                validator_address: "vali2".to_string(),
+                reward: vec![DecCoin {
+                    denom: "ubtc".to_string(),
+                    amount: "0".to_string(),
+                }],
+            },
+            DelegationDelegatorReward {
+                validator_address: "vali3".to_string(),
+                reward: vec![DecCoin {
+                    denom: "ubtc".to_string(),
+                    amount: "12500000000000000000000".to_string(),
+                }],
+            },
+        ],
+        total: vec![DecCoin {
+            denom: "ubtc".to_string(),
+            amount: "15000000000000000000000".to_string(),
+        }],
+    };
+
+    let expected_response = AllPendingRewards {
+        rewards: vec![
+            PendingReward {
+                validator: "vali1".to_string(),
+                amount: vec![Coin {
+                    denom: "ubtc".to_string(),
+                    amount: 2_500u128.into(),
+                }],
+            },
+            PendingReward {
+                validator: "vali3".to_string(),
+                amount: vec![Coin {
+                    denom: "ubtc".to_string(),
+                    amount: 12_500u128.into(),
+                }],
+            },
+        ],
+        total: coins(15_000, "ubtc"),
+    };
+
+    assert_eq!(
+        process_delegation_total_rewards_response(query_response).unwrap(),
+        expected_response
+    );
 }

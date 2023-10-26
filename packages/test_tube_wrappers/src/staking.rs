@@ -33,13 +33,13 @@ where
         pub create_validator: MsgCreateValidator => MsgCreateValidatorResponse
     }
 
-    fn_query! {
-        pub query_delegation ["/cosmos.staking.v1beta1.Query/Delegation"]: QueryDelegationRequest => QueryDelegationResponse
-    }
-    fn_query! {
-        pub query_validator ["/cosmos.staking.v1beta1.Query/Validator"]: QueryValidatorRequest => QueryValidatorResponse
-    }
-    fn_query! {
-        pub query_validators ["/cosmos.staking.v1beta1.Query/Validators"]: QueryValidatorsRequest => QueryValidatorsResponse
-    }
+    // fn_query! {
+    //     pub query_delegation ["/cosmos.staking.v1beta1.Query/Delegation"]: QueryDelegationRequest => QueryDelegationResponse
+    // }
+    // fn_query! {
+    //     pub query_validator ["/cosmos.staking.v1beta1.Query/Validator"]: QueryValidatorRequest => QueryValidatorResponse
+    // }
+    // fn_query! {
+    //     pub query_validators ["/cosmos.staking.v1beta1.Query/Validators"]: QueryValidatorsRequest => QueryValidatorsResponse
+    // }
 }

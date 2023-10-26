@@ -29,55 +29,55 @@ impl<'a, R> Authz<'a, R>
 where
     R: Runner<'a>,
 {
-    pub fn create_generic_grant(
-        &self,
-        grantee: String,
-        granter: String,
-        msg_type: String,
-        expiration: Option<Timestamp>,
-        signer: &SigningAccount,
-    ) -> RunnerExecuteResult<MsgGrantResponse> {
-        self.runner.execute(
-            MsgGrant {
-                granter,
-                grantee,
-                grant: Some(Grant {
-                    authorization: Some(Any {
-                        type_url: GenericAuthorization::TYPE_URL.to_string(),
-                        value: GenericAuthorization { msg: msg_type }.encode_to_vec(),
-                    }),
-                    expiration,
-                }),
-            },
-            MsgGrant::TYPE_URL,
-            signer,
-        )
-    }
+    // pub fn create_generic_grant(
+    //     &self,
+    //     grantee: String,
+    //     granter: String,
+    //     msg_type: String,
+    //     expiration: Option<Timestamp>,
+    //     signer: &SigningAccount,
+    // ) -> RunnerExecuteResult<MsgGrantResponse> {
+    //     self.runner.execute(
+    //         MsgGrant {
+    //             granter,
+    //             grantee,
+    //             grant: Some(Grant {
+    //                 authorization: Some(Any {
+    //                     type_url: GenericAuthorization::TYPE_URL.to_string(),
+    //                     value: GenericAuthorization { msg: msg_type }.encode_to_vec(),
+    //                 }),
+    //                 expiration,
+    //             }),
+    //         },
+    //         MsgGrant::TYPE_URL,
+    //         signer,
+    //     )
+    // }
 
-    pub fn create_send_authorization(
-        &self,
-        grantee: String,
-        granter: String,
-        spend_limit: Vec<Coin>,
-        expiration: Option<Timestamp>,
-        signer: &SigningAccount,
-    ) -> RunnerExecuteResult<MsgGrantResponse> {
-        self.runner.execute(
-            MsgGrant {
-                granter,
-                grantee,
-                grant: Some(Grant {
-                    authorization: Some(Any {
-                        type_url: SendAuthorization::TYPE_URL.to_string(),
-                        value: SendAuthorization { spend_limit }.encode_to_vec(),
-                    }),
-                    expiration,
-                }),
-            },
-            MsgGrant::TYPE_URL,
-            signer,
-        )
-    }
+    // pub fn create_send_authorization(
+    //     &self,
+    //     grantee: String,
+    //     granter: String,
+    //     spend_limit: Vec<Coin>,
+    //     expiration: Option<Timestamp>,
+    //     signer: &SigningAccount,
+    // ) -> RunnerExecuteResult<MsgGrantResponse> {
+    //     self.runner.execute(
+    //         MsgGrant {
+    //             granter,
+    //             grantee,
+    //             grant: Some(Grant {
+    //                 authorization: Some(Any {
+    //                     type_url: SendAuthorization::TYPE_URL.to_string(),
+    //                     value: SendAuthorization { spend_limit }.encode_to_vec(),
+    //                 }),
+    //                 expiration,
+    //             }),
+    //         },
+    //         MsgGrant::TYPE_URL,
+    //         signer,
+    //     )
+    // }
 
     fn_execute! {
         pub create_grant: MsgGrant => MsgGrantResponse

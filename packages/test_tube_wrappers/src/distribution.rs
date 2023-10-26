@@ -31,10 +31,10 @@ where
     //msgfundcommunitypool
 
     // macro for creating query function
-    fn_query! {
-        pub query_delegator_withdraw_address ["/cosmos.distribution.v1beta1.Query/DelegatorWithdrawAddress"]: QueryDelegatorWithdrawAddressRequest => QueryDelegatorWithdrawAddressResponse
-    }
-    fn_query! {
-        pub query_delegation_total_rewards ["/cosmos.distribution.v1beta1.Query/DelegationTotalRewards"]: QueryDelegationTotalRewardsRequest => QueryDelegationTotalRewardsResponse
-    }
+    // fn_query! {
+    //     pub query_delegator_withdraw_address ["/cosmos.distribution.v1beta1.Query/DelegatorWithdrawAddress"]: QueryDelegatorWithdrawAddressRequest => QueryDelegatorWithdrawAddressResponse
+    // }
+    // fn_query! {
+    //     pub query_delegation_total_rewards ["/cosmos.distribution.v1beta1.Query/DelegationTotalRewards"]: QueryDelegationTotalRewardsRequest => QueryDelegationTotalRewardsResponse
+    // }
 }
