@@ -88,7 +88,7 @@ impl AuthorizationType {
                 "/cosmos.staking.v1beta1.MsgDelegate".to_string()
             }
             AuthorizationType::ContractExecutionAuthorization { .. } => {
-                "/cosmwasm.wasm.v1beta1.MsgExecuteContract".to_string()
+                "/cosmwasm.wasm.v1.MsgExecuteContract".to_string()
             }
             AuthorizationType::TransferAuthorization { .. } => {
                 "/ibc.applications.transfer.v1.MsgTransfer".to_string()
