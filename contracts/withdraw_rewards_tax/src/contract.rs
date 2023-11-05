@@ -11,7 +11,7 @@ use authzpp_utils::helpers::Expirable;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult,
+    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult, Timestamp,
 };
 use cw_grant_spec::grantable_trait::{GrantStructure, Grantable};
 use cw_grant_spec::grants::{AuthorizationType, GrantRequirement, RevokeRequirement};
@@ -193,16 +193,19 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractErro
             max_fee_percentage,
             taxation_addr,
         } => {
-            let grant_spec = QueryMsg::query_grants(GrantStructure {
-                granter,
-                grantee,
-                expiration,
-                grant_contract: env.contract.address,
-                grant_data: GrantSpecData {
-                    max_fee_percentage,
-                    taxation_addr,
+            let grant_spec = QueryMsg::query_grants(
+                GrantStructure {
+                    granter,
+                    grantee,
+                    expiration,
+                    grant_contract: env.contract.address,
+                    grant_data: GrantSpecData {
+                        max_fee_percentage,
+                        taxation_addr,
+                    },
                 },
-            });
+                env.block.time,
+            );
 
             to_binary(&grant_spec?).map_err(ContractError::Std)
         }
@@ -213,7 +216,7 @@ impl Grantable for QueryMsg {
     type GrantSettings = GrantSpecData;
 
     fn query_revokes(grant: GrantStructure<GrantSpecData>) -> StdResult<Vec<RevokeRequirement>> {
-        Self::query_grants(grant)?
+        Self::query_grants(grant, Timestamp::default())?
             .into_iter()
             .map(|grant_req| -> StdResult<RevokeRequirement> {
                 match grant_req {
@@ -243,7 +246,10 @@ impl Grantable for QueryMsg {
             .collect::<StdResult<Vec<RevokeRequirement>>>()
     }
 
-    fn query_grants(grant: GrantStructure<GrantSpecData>) -> StdResult<Vec<GrantRequirement>> {
+    fn query_grants(
+        grant: GrantStructure<GrantSpecData>,
+        _current_timestamp: Timestamp,
+    ) -> StdResult<Vec<GrantRequirement>> {
         let GrantStructure {
             granter,
             grantee,

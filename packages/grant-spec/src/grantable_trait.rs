@@ -10,8 +10,10 @@ use std::u64;
 pub trait Grantable {
     type GrantSettings;
 
-    fn query_grants(grant: GrantStructure<Self::GrantSettings>)
-        -> StdResult<Vec<GrantRequirement>>;
+    fn query_grants(
+        grant: GrantStructure<Self::GrantSettings>,
+        current_timestamp: Timestamp,
+    ) -> StdResult<Vec<GrantRequirement>>;
 
     fn query_revokes(
         grant: GrantStructure<Self::GrantSettings>,
