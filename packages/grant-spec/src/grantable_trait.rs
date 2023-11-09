@@ -379,11 +379,12 @@ pub fn concat_coins(a: Vec<Coin>, b: Vec<Coin>) -> Vec<Coin> {
         .fold(HashMap::<String, Uint128>::new(), |mut acc, coin| {
             let denom = coin.denom.clone();
             let amount = coin.amount;
-            if let Some(existing_amount) = acc.get(&denom) {
-                acc.insert(denom, existing_amount.saturating_add(amount));
-            } else {
-                acc.insert(denom, amount);
-            }
+            acc.entry(denom)
+                .and_modify(|existing_amount| {
+                    *existing_amount = existing_amount.saturating_add(amount);
+                })
+                .or_insert(amount);
+
             acc
         })
         .into_iter()
