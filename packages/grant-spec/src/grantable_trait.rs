@@ -372,6 +372,8 @@ fn combine_send_auths(
     }
 }
 
+/// Combines to lists of coins into a single list of coins
+/// If there are duplicate denoms, the amounts are summed
 pub fn concat_coins(a: Vec<Coin>, b: Vec<Coin>) -> Vec<Coin> {
     [a, b]
         .concat()
@@ -389,6 +391,7 @@ pub fn concat_coins(a: Vec<Coin>, b: Vec<Coin>) -> Vec<Coin> {
         })
         .into_iter()
         .map(|(denom, amount)| Coin { denom, amount })
+        .sorted_by(|a, b| a.denom.cmp(&b.denom))
         .collect()
 }
 
