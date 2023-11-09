@@ -1,6 +1,6 @@
 use std::vec;
 
-use cosmwasm_std::{Addr, Timestamp};
+use cosmwasm_std::{coin, coins, Addr, Timestamp};
 
 use crate::{
     grantable_trait::dedupe_grant_reqs,
@@ -12,9 +12,9 @@ use crate::{
 };
 
 #[test]
-pub fn dedupe__basic_grants() {
+pub fn dedupe_basic_grants() {
     let granter1 = Addr::unchecked("granter1");
-    let granter2 = Addr::unchecked("granter2");
+    // let granter2 = Addr::unchecked("granter2");
     let grantee1 = Addr::unchecked("grantee1");
     let grantee2 = Addr::unchecked("grantee2");
     let validator1 = Addr::unchecked("validator1");
@@ -159,12 +159,12 @@ pub fn dedupe__basic_grants() {
 #[test]
 pub fn dedupe_contract_auth_grants() {
     let user1 = Addr::unchecked("user1");
-    let granter1 = Addr::unchecked("granter1");
-    let granter2 = Addr::unchecked("granter2");
+    // let granter1 = Addr::unchecked("granter1");
+    // let granter2 = Addr::unchecked("granter2");
     let grantee1 = Addr::unchecked("grantee1");
-    let grantee2 = Addr::unchecked("grantee2");
+    // let grantee2 = Addr::unchecked("grantee2");
     let contract1 = Addr::unchecked("contract1");
-    let contract2 = Addr::unchecked("contract2");
+    // let contract2 = Addr::unchecked("contract2");
 
     // Test concatenation of contract execution authorizations
     assert_eq!(
@@ -227,5 +227,50 @@ pub fn dedupe_contract_auth_grants() {
             grantee: grantee1.clone(),
             expiration: Timestamp::from_seconds(0)
         },]
+    );
+}
+
+#[test]
+pub fn dedupe_send_auth_grants() {
+    // let user1 = Addr::unchecked("user1");
+    let granter1 = Addr::unchecked("granter1");
+    // let granter2 = Addr::unchecked("granter2");
+    let grantee1 = Addr::unchecked("grantee1");
+    // let grantee2 = Addr::unchecked("grantee2");
+    let receiver1 = Addr::unchecked("receiver1");
+    let receiver2 = Addr::unchecked("receiver2");
+
+    // Test concatenation of send authorizations
+    assert_eq!(
+        dedupe_grant_reqs(vec![
+            GrantRequirement::GrantSpec {
+                grant_type: AuthorizationType::SendAuthorization {
+                    spend_limit: Some(coins(100, "ubtc")),
+                    allow_list: Some(vec![receiver1.clone()])
+                },
+                granter: granter1.clone(),
+                grantee: grantee1.clone(),
+                expiration: Timestamp::from_seconds(0)
+            },
+            GrantRequirement::GrantSpec {
+                grant_type: AuthorizationType::SendAuthorization {
+                    spend_limit: Some(coins(200, "ubtc")),
+                    allow_list: Some(vec![receiver2.clone()])
+                },
+                granter: granter1.clone(),
+                grantee: grantee1.clone(),
+                expiration: Timestamp::from_seconds(0)
+            },
+        ]),
+        vec![GrantRequirement::GrantSpec {
+            grant_type: AuthorizationType::SendAuthorization {
+                spend_limit: Some(vec![coin(300, "ubtc")]),
+                allow_list: Some(vec![receiver1.clone(), receiver2.clone()])
+            },
+            granter: granter1.clone(),
+            grantee: grantee1.clone(),
+            expiration: Timestamp::from_seconds(0)
+        },],
+        "send auths should be concatenated"
     );
 }

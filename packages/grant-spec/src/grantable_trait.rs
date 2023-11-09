@@ -3,9 +3,9 @@ use crate::grants::{
     ContractExecutionSetting, GrantRequirement, RevokeRequirement, StakeAuthorizationPolicy,
     StakeAuthorizationType, StakeAuthorizationValidators,
 };
-use cosmwasm_std::{Addr, Coin, StdResult, Timestamp};
+use cosmwasm_std::{Addr, Coin, StdResult, Timestamp, Uint128};
 use itertools::Itertools;
-use std::u64;
+use std::{collections::HashMap, u64};
 
 pub trait Grantable {
     type GrantSettings;
@@ -355,7 +355,7 @@ fn combine_send_auths(
         a_allow_list, b_allow_list,
     );
     let spend_limit = match (a_spend_limit, b_spend_limit) {
-        (Some(a), Some(b)) => Some([a, b].concat()),
+        (Some(a), Some(b)) => Some(concat_coins(a, b)),
         // if one has a spend limit but not the other than the combined send auth can't have a spend limit
         _ => None,
     };
@@ -370,6 +370,25 @@ fn combine_send_auths(
         spend_limit,
         allow_list,
     }
+}
+
+pub fn concat_coins(a: Vec<Coin>, b: Vec<Coin>) -> Vec<Coin> {
+    [a, b]
+        .concat()
+        .into_iter()
+        .fold(HashMap::<String, Uint128>::new(), |mut acc, coin| {
+            let denom = coin.denom.clone();
+            let amount = coin.amount;
+            if let Some(existing_amount) = acc.get(&denom) {
+                acc.insert(denom, existing_amount.saturating_add(amount));
+            } else {
+                acc.insert(denom, amount);
+            }
+            acc
+        })
+        .into_iter()
+        .map(|(denom, amount)| Coin { denom, amount })
+        .collect()
 }
 
 fn combine_stake_auth_policies(
