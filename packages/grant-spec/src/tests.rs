@@ -245,7 +245,7 @@ pub fn dedupe_send_auth_grants() {
         dedupe_grant_reqs(vec![
             GrantRequirement::GrantSpec {
                 grant_type: AuthorizationType::SendAuthorization {
-                    spend_limit: Some(coins(100, "ubtc")),
+                    spend_limit: Some(vec![coin(100, "ubtc"), coin(200, "aeth")]),
                     allow_list: Some(vec![receiver1.clone()])
                 },
                 granter: granter1.clone(),
@@ -264,7 +264,7 @@ pub fn dedupe_send_auth_grants() {
         ]),
         vec![GrantRequirement::GrantSpec {
             grant_type: AuthorizationType::SendAuthorization {
-                spend_limit: Some(vec![coin(300, "ubtc")]),
+                spend_limit: Some(vec![coin(200, "aeth"), coin(300, "ubtc"),]),
                 allow_list: Some(vec![receiver1.clone(), receiver2.clone()])
             },
             granter: granter1.clone(),

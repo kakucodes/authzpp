@@ -204,3 +204,10 @@ pub enum ContractExecutionAuthorizationFilter {
         messages: Vec<Binary>,
     },
 }
+
+#[cw_serde]
+pub struct GrantBase {
+    pub granter: Addr,
+    pub grantee: Addr,
+    pub expiration: Timestamp,
+}
