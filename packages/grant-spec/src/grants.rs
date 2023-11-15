@@ -49,13 +49,18 @@ impl GrantRequirement {
         base: GrantBase,
         contract_addr: Addr,
         keys: Vec<impl Into<String>>,
-        limit_denom: &str,
+        limit_denom: Option<&str>,
     ) -> Self {
         GrantRequirement::GrantSpec {
             grant_type: AuthorizationType::ContractExecutionAuthorization(vec![
                 ContractExecutionSetting {
                     contract_addr,
-                    limit: ContractExecutionAuthorizationLimit::single_fund_limit(limit_denom),
+                    limit: limit_denom.map_or(
+                        ContractExecutionAuthorizationLimit::default(),
+                        |limit_denom| {
+                            ContractExecutionAuthorizationLimit::single_fund_limit(limit_denom)
+                        },
+                    ),
                     filter: ContractExecutionAuthorizationFilter::AcceptedMessageKeysFilter {
                         keys: keys.into_iter().map(|k| k.into()).collect(),
                     },
