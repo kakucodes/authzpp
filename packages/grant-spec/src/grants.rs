@@ -44,6 +44,30 @@ impl From<GrantRequirement> for RevokeRequirement {
     }
 }
 
+impl GrantRequirement {
+    pub fn default_contract_exec_auth(
+        base: GrantBase,
+        contract_addr: Addr,
+        keys: Vec<impl Into<String>>,
+        limit_denom: &str,
+    ) -> Self {
+        GrantRequirement::GrantSpec {
+            grant_type: AuthorizationType::ContractExecutionAuthorization(vec![
+                ContractExecutionSetting {
+                    contract_addr,
+                    limit: ContractExecutionAuthorizationLimit::single_fund_limit(limit_denom),
+                    filter: ContractExecutionAuthorizationFilter::AcceptedMessageKeysFilter {
+                        keys: keys.into_iter().map(|k| k.into()).collect(),
+                    },
+                },
+            ]),
+            granter: base.granter,
+            grantee: base.grantee,
+            expiration: base.expiration,
+        }
+    }
+}
+
 #[cw_serde]
 #[derive(Eq)]
 pub enum RevokeRequirement {
