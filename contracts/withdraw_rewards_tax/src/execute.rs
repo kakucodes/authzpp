@@ -75,6 +75,19 @@ pub fn generate_reward_withdrawl_msgs(
         return Err(ContractError::Unauthorized {});
     }
 
+    // if the percentage is zero, just send the rewards to the grantee, no need to mess with
+    // the taxation address
+    if percentage.is_some_and(|pct| pct.is_zero()) {
+        return Ok(RewardExecutionMsgs {
+            msgs: vec![authzpp_utils::msg_gen::exec_msg(
+                contract_addr,
+                withdraw_rewards_msgs(delegator_addr, &rewards)?,
+            )
+            .map_err(ContractError::EncodeError)?],
+            grantee,
+        });
+    }
+
     // calculate how much the granter and grantee/withdraw address should get from the staking rewards
     let SimulateExecuteResponse {
         delegator_rewards,

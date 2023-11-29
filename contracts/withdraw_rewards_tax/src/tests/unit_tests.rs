@@ -393,6 +393,62 @@ fn gen_reward_withdrawl_msgs() {
 }
 
 #[test]
+fn gen_reward_withdrawl_msgs_zero_fee() {
+    let contract_addr = Addr::unchecked("contract");
+    let grantee_addr = Addr::unchecked("grantee");
+    let granter_addr = Addr::unchecked("granter");
+    let take_rate_addr = Addr::unchecked("take_rate");
+    let validator1 = "validator1".to_string();
+
+    // test the generate_rewards_withdrawl_msgs function
+    let generated_msgs = generate_reward_withdrawl_msgs(
+        AllPendingRewards {
+            rewards: vec![PendingReward {
+                amount: vec![Coin {
+                    denom: "ujuno".to_string(),
+                    amount: 100u128.into(),
+                }],
+                validator: validator1.to_string(),
+            }],
+            total: vec![Coin {
+                denom: "ujuno".to_string(),
+                amount: 100u128.into(),
+            }],
+        },
+        AllowedWithdrawlSettings {
+            grantee: grantee_addr.to_string(),
+            taxation_address: take_rate_addr.to_string(),
+            max_fee_percentage: Decimal::percent(15),
+            expiration: Timestamp::from_seconds(1000),
+        },
+        &grantee_addr,
+        &contract_addr,
+        &granter_addr,
+        Some(Decimal::zero()),
+    )
+    .unwrap();
+
+    let expected_msgs = RewardExecutionMsgs {
+        msgs: vec![exec_msg(
+            &contract_addr,
+            vec![MsgWithdrawDelegatorReward {
+                validator_address: validator1,
+                delegator_address: granter_addr.to_string(),
+            }
+            .to_any()
+            .unwrap()],
+        )
+        .unwrap()],
+        grantee: grantee_addr.to_string(),
+    };
+
+    assert_eq!(
+        generated_msgs, expected_msgs,
+        "generating withdraw messages when there is no tax being taken"
+    );
+}
+
+#[test]
 pub fn generate_rewards_msgs_without_rewards() {
     let contract_addr = Addr::unchecked("contract");
     let grantee_addr = Addr::unchecked("grantee");
