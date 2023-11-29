@@ -77,7 +77,7 @@ pub fn generate_reward_withdrawl_msgs(
 
     // if the percentage is zero, just send the rewards to the grantee, no need to mess with
     // the taxation address
-    if percentage.is_some_and(|pct| pct.is_zero()) {
+    if percentage.is_some() && percentage.unwrap().is_zero() {
         return Ok(RewardExecutionMsgs {
             msgs: vec![authzpp_utils::msg_gen::exec_msg(
                 contract_addr,
