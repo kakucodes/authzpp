@@ -1,5 +1,6 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{coins, Addr, Binary, Coin, Timestamp};
+use serde::Serialize;
 // use withdraw_rewards_tax_grant::msg::GrantsSpecData as WithdrawTaxGrantsSpecData;
 
 #[cw_serde]
@@ -63,6 +64,40 @@ impl GrantRequirement {
                     ),
                     filter: ContractExecutionAuthorizationFilter::AcceptedMessageKeysFilter {
                         keys: keys.into_iter().map(|k| k.into()).collect(),
+                    },
+                },
+            ]),
+            granter: base.granter,
+            grantee: base.grantee,
+            expiration: base.expiration,
+        }
+    }
+
+    pub fn contract_exec_messages_auth<T>(
+        base: GrantBase,
+        contract_addr: Addr,
+        messages: Vec<T>,
+        limit_denom: Option<&str>,
+    ) -> Self
+    where
+        T: Serialize + Sized,
+    {
+        GrantRequirement::GrantSpec {
+            grant_type: AuthorizationType::ContractExecutionAuthorization(vec![
+                ContractExecutionSetting {
+                    contract_addr,
+                    limit: limit_denom.map_or(
+                        ContractExecutionAuthorizationLimit::default(),
+                        |limit_denom| {
+                            ContractExecutionAuthorizationLimit::single_fund_limit(limit_denom)
+                        },
+                    ),
+                    filter: ContractExecutionAuthorizationFilter::AcceptedMessagesFilter {
+                        messages: messages
+                            .iter()
+                            // normally unwrap would be a nogo but it should be alright here since this is only used for queries
+                            .map(|m| cosmwasm_std::to_binary(m).unwrap())
+                            .collect(),
                     },
                 },
             ]),
