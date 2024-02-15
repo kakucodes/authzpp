@@ -7,6 +7,9 @@ use cosmwasm_std::{Addr, Coin, StdResult, Timestamp, Uint128};
 use itertools::Itertools;
 use std::{collections::HashMap, u64};
 
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
+
 pub trait Grantable {
     type GrantSettings;
 
@@ -31,6 +34,7 @@ pub struct GrantStructure<T> {
 
 type StakeAuthKey = (Addr, Addr, StakeAuthorizationType);
 
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub fn dedupe_grant_reqs(grants: Vec<GrantRequirement>) -> Vec<GrantRequirement> {
     let mut stake_authorizations = vec![];
     let mut generic_authorizations = vec![];

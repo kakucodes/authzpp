@@ -5,13 +5,19 @@ authors = ["Marc <marc@yieldmos.com>"]
 description = "Helper types and functions for specifying Authz grants that should be set before contract use"
 edition = { workspace = true }
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+wasm = ["wasm-bindgen", "tsify"]
+
 [dependencies]
-# withdraw-rewards-tax-grant = { path = "../../contracts/withdraw_rewards_tax", features = [
-#     "msgs",
-# ] }
+
 cosmwasm-std = { workspace = true }
 cosmwasm-schema = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 itertools = "0.11.0"
+tsify = { version = "0.4.5", optional = true }
+wasm-bindgen = { version = "0.2.87", optional = true }

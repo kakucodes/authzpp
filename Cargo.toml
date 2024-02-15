@@ -30,7 +30,7 @@ osmosis-test-tube = { version = "20.1.0" }
 osmosis-std = { version = "0.20.1" }
 authzpp-utils = { path = "./packages/utils" }
 authzpp-tt-wrappers = { path = "./packages/test_tube_wrappers" }
-cw-grant-spec = { path = "./packages/grant-spec" }
+cw-grant-spec = { path = "./packages/grant_spec" }
 # withdraw-rewards-tax-grant = { path = "./contracts/withdraw_rewards_tax", features = [
 #     "library",
 # ] }

@@ -1,6 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, Timestamp};
-use cw_grant_spec::grants::GrantRequirement;
+pub use cw_grant_spec::grants::GrantRequirement;
 
 #[cw_serde]
 pub struct InstantiateMsg {}

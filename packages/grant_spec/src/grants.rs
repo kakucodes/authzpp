@@ -1,10 +1,17 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{coins, Addr, Binary, Coin, Timestamp};
 use serde::Serialize;
-// use withdraw_rewards_tax_grant::msg::GrantsSpecData as WithdrawTaxGrantsSpecData;
+
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
+
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
 
 #[cw_serde]
 #[derive(Eq)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub enum GrantRequirement {
     GrantSpec {
         grant_type: AuthorizationType,
@@ -106,10 +113,55 @@ impl GrantRequirement {
             expiration: base.expiration,
         }
     }
+
+    pub fn delegation_authorization(
+        base: GrantBase,
+        // the list of validators to whitelist
+        validator_addresses: Option<String>,
+        max_tokens: Option<Coin>,
+    ) -> Self {
+        let (max_token_amount, max_token_denom) = max_tokens
+            .map(|c| (Some(c.amount.u128()), Some(c.denom)))
+            .unwrap_or((None, None));
+        gen_delegation_authorization(base, validator_addresses, max_token_amount, max_token_denom)
+    }
+}
+
+// #[cfg_attr(feature = "wasm", wasm_bindgen)]
+pub fn gen_delegation_authorization(
+    base: GrantBase,
+    // the list of validators to whitelist
+    validator_addresses: Option<String>,
+    max_token_amount: Option<u128>,
+    max_token_denom: Option<String>,
+) -> GrantRequirement {
+    GrantRequirement::GrantSpec {
+        grant_type: AuthorizationType::StakeAuthorization {
+            max_tokens: if let (Some(amount), Some(denom)) = (max_token_amount, max_token_denom) {
+                Some(Coin {
+                    amount: amount.into(),
+                    denom,
+                })
+            } else {
+                None
+            },
+            authorization_type: StakeAuthorizationType::Delegate,
+            validators: validator_addresses.map(|address| {
+                StakeAuthorizationPolicy::AllowList(StakeAuthorizationValidators {
+                    address: vec![address],
+                })
+            }),
+        },
+        granter: base.granter,
+        grantee: base.grantee,
+        expiration: base.expiration,
+    }
 }
 
 #[cw_serde]
 #[derive(Eq)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub enum RevokeRequirement {
     RevokeSpec {
         grant_type: String,
@@ -125,6 +177,8 @@ pub enum RevokeRequirement {
 
 #[cw_serde]
 #[derive(Eq)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub enum AuthorizationType {
     GenericAuthorization {
         msg: String,
@@ -163,6 +217,8 @@ impl AuthorizationType {
 
 #[cw_serde]
 #[derive(Eq, Default)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct TransferAuthorizationSetting {
     source_port: String,
     source_channel: String,
@@ -174,6 +230,8 @@ pub struct TransferAuthorizationSetting {
 
 #[cw_serde]
 #[derive(Eq)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct ContractExecutionSetting {
     pub contract_addr: Addr,
     /// Limit defines execution limits that are enforced and updated when the grant
@@ -187,6 +245,8 @@ pub struct ContractExecutionSetting {
 
 #[cw_serde]
 #[derive(Eq)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub enum StakeAuthorizationType {
     /// AUTHORIZATION_TYPE_UNSPECIFIED specifies an unknown authorization type
     Unspecified = 0,
@@ -201,12 +261,16 @@ pub enum StakeAuthorizationType {
 /// Validators defines list of validator addresses.
 #[cw_serde]
 #[derive(Eq)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct StakeAuthorizationValidators {
     pub address: Vec<String>,
 }
 
 #[cw_serde]
 #[derive(Eq)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub enum StakeAuthorizationPolicy {
     /// allow_list specifies list of validator addresses to whom grantee can delegate tokens on behalf of granter's
     /// account.
@@ -217,6 +281,8 @@ pub enum StakeAuthorizationPolicy {
 
 #[cw_serde]
 #[derive(Eq)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub enum ContractExecutionAuthorizationLimit {
     MaxCallsLimit {
         /// Remaining number that is decremented on each execution
@@ -250,6 +316,8 @@ impl ContractExecutionAuthorizationLimit {
 
 #[cw_serde]
 #[derive(Default, Eq)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub enum ContractExecutionAuthorizationFilter {
     /// AllowAllMessagesFilter is a wildcard to allow any type of contract payload
     /// message.
@@ -270,6 +338,8 @@ pub enum ContractExecutionAuthorizationFilter {
 }
 
 #[cw_serde]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct GrantBase {
     pub granter: Addr,
     pub grantee: Addr,
