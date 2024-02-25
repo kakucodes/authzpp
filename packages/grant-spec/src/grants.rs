@@ -46,6 +46,23 @@ impl From<GrantRequirement> for RevokeRequirement {
 }
 
 impl GrantRequirement {
+    pub fn generic_auth(
+        GrantBase {
+            granter,
+            grantee,
+            expiration,
+        }: GrantBase,
+        type_url: &str,
+    ) -> Self {
+        GrantRequirement::GrantSpec {
+            grant_type: AuthorizationType::GenericAuthorization {
+                msg: type_url.to_string(),
+            },
+            granter,
+            grantee,
+            expiration,
+        }
+    }
     pub fn default_contract_exec_auth(
         base: GrantBase,
         contract_addr: Addr,
