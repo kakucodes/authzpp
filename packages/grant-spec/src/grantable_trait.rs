@@ -13,6 +13,8 @@ pub trait Grantable {
     fn query_grants(
         grant: GrantStructure<Self::GrantSettings>,
         current_timestamp: Timestamp,
+        max_take_rate: Decimal,
+        take_rate_addr: Addr,
     ) -> StdResult<Vec<GrantRequirement>>;
 
     fn query_revokes(
