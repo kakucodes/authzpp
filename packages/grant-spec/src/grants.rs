@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{coins, Addr, Binary, Coin, Timestamp};
+use cosmwasm_std::{coin, coins, Addr, Binary, Coin, Timestamp};
 use serde::Serialize;
 // use withdraw_rewards_tax_grant::msg::GrantsSpecData as WithdrawTaxGrantsSpecData;
 
@@ -108,6 +108,37 @@ impl GrantRequirement {
                         |limit_denom| {
                             ContractExecutionAuthorizationLimit::single_fund_limit(limit_denom)
                         },
+                    ),
+                    filter: ContractExecutionAuthorizationFilter::AcceptedMessagesFilter {
+                        messages: messages
+                            .iter()
+                            // normally unwrap would be a nogo but it should be alright here since this is only used for queries
+                            .map(|m| cosmwasm_std::to_binary(m).unwrap())
+                            .collect(),
+                    },
+                },
+            ]),
+            granter: base.granter,
+            grantee: base.grantee,
+            expiration: base.expiration,
+        }
+    }
+
+    pub fn contract_exec_messages_mutlidenoms_auth<T>(
+        base: GrantBase,
+        contract_addr: Addr,
+        messages: Vec<T>,
+        allowed_denoms: Vec<&str>,
+    ) -> Self
+    where
+        T: Serialize + Sized,
+    {
+        GrantRequirement::GrantSpec {
+            grant_type: AuthorizationType::ContractExecutionAuthorization(vec![
+                ContractExecutionSetting {
+                    contract_addr,
+                    limit: ContractExecutionAuthorizationLimit::multiple_fund_limits(
+                        allowed_denoms,
                     ),
                     filter: ContractExecutionAuthorizationFilter::AcceptedMessagesFilter {
                         messages: messages
@@ -261,6 +292,12 @@ impl ContractExecutionAuthorizationLimit {
     pub fn single_fund_limit(denom: impl Into<String>) -> Self {
         self::ContractExecutionAuthorizationLimit::MaxFundsLimit {
             amounts: coins(u128::MAX, denom),
+        }
+    }
+
+    pub fn multiple_fund_limits(denoms: Vec<impl Into<String>>) -> Self {
+        self::ContractExecutionAuthorizationLimit::MaxFundsLimit {
+            amounts: denoms.into_iter().map(|d| coin(u128::MAX, d)).collect(),
         }
     }
 }
