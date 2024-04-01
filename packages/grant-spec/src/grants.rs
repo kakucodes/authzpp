@@ -1,6 +1,6 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{coin, coins, Addr, Binary, Coin, Timestamp};
-use serde::Serialize;
+use cosmwasm_std::{coin, coins, Addr, Binary, Coin, CustomMsg, Timestamp};
+
 // use withdraw_rewards_tax_grant::msg::GrantsSpecData as WithdrawTaxGrantsSpecData;
 
 #[cw_serde]
@@ -97,7 +97,7 @@ impl GrantRequirement {
         limit_denom: Option<&str>,
     ) -> Self
     where
-        T: Serialize + Sized,
+        T: CustomMsg,
     {
         GrantRequirement::GrantSpec {
             grant_type: AuthorizationType::ContractExecutionAuthorization(vec![
@@ -131,7 +131,7 @@ impl GrantRequirement {
         allowed_denoms: Vec<&str>,
     ) -> Self
     where
-        T: Serialize + Sized,
+        T: CustomMsg,
     {
         GrantRequirement::GrantSpec {
             grant_type: AuthorizationType::ContractExecutionAuthorization(vec![
